@@ -17,12 +17,12 @@ Start Docker, then run only MariaDB and launch the app locally:
 
 ```bash
 docker compose up -d --wait mariadb
-SPRING_DOCKER_COMPOSE_ENABLED=false DB_URL=jdbc:mariadb://localhost:3307/atlasrh ./mvnw spring-boot:run
+DB_URL=jdbc:mariadb://localhost:3307/atlasrh ./mvnw spring-boot:run
 ```
 
-Automatic Compose management is disabled for this command so it does not also start
-the containerized application and cause a port conflict. Stop the Docker app first
-with `docker compose stop app` if it is already running.
+Containers are managed manually with `docker compose`; the application does not
+start them automatically. Stop the Docker app first with `docker compose stop app`
+if it is already running, to avoid a port conflict.
 
 The application listens on `http://localhost:8080`. There is no `/` endpoint yet,
 so a 404 at that address does not necessarily mean startup failed. Check the startup logs.
@@ -42,8 +42,7 @@ docker compose up -d --wait mariadb
 DB_URL=jdbc:mariadb://localhost:3307/atlasrh java -jar target/atlasrh-0.0.1-SNAPSHOT.jar
 ```
 
-Docker Compose support is excluded from the packaged JAR by default, so start the
-database separately. The explicit URL is necessary because `compose.yaml` exposes
+Start the database separately before running the JAR. The explicit URL is necessary because `compose.yaml` exposes
 port **3307**, while the fallback in `application.yaml` uses **3306**.
 
 ## Build and run the Docker image
@@ -140,7 +139,7 @@ docker compose up -d --wait mariadb
 DB_URL=jdbc:mariadb://localhost:3307/atlasrh ./mvnw test
 ```
 
-Spring Boot Docker Compose support is disabled during tests by default.
+Tests use the database you started above; they do not start Docker Compose automatically.
 
 ## Useful Docker commands
 
