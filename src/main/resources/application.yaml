@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: atlasrh
+  datasource:
+    url: ${DB_URL:jdbc:mariadb://localhost:3306/atlasrh}
+    username: ${DB_USERNAME:atlasrh}
+    password: ${DB_PASSWORD:atlasrh_dev}
+  jpa:
+    open-in-view: false
+    hibernate:
+      # Development only; use database migrations in production.
+      ddl-auto: ${DDL_AUTO:update}

@@ -1,0 +1,35 @@
+services:
+  app:
+    build: .
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      DB_URL: jdbc:mariadb://mariadb:3306/atlasrh
+      DB_USERNAME: ${DB_USERNAME:-atlasrh}
+      DB_PASSWORD: ${DB_PASSWORD:-atlasrh_dev}
+      DDL_AUTO: ${DDL_AUTO:-update}
+      SPRING_DOCKER_COMPOSE_ENABLED: "false"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+  mariadb:
+    image: mariadb:11.4
+    environment:
+      MARIADB_DATABASE: atlasrh
+      MARIADB_USER: ${DB_USERNAME:-atlasrh}
+      MARIADB_PASSWORD: ${DB_PASSWORD:-atlasrh_dev}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_dev_only}
+    ports:
+      - "127.0.0.1:3307:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  mariadb_data:

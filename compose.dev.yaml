@@ -1,0 +1,10 @@
+services:
+  app:
+    build:
+      context: .
+      target: build
+    working_dir: /workspace
+    entrypoint: ["./mvnw", "-B", "-ntp", "spring-boot:run"]
+    command: []
+    volumes:
+      - ./src:/workspace/src:ro
