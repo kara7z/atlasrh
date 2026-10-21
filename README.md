@@ -79,7 +79,7 @@ docker compose -f compose.yaml -f compose.dev.yaml up --build -d
 After changing Java code or application resources, compile inside the running container:
 
 ```bash
-docker compose -f compose.yaml -f compose.dev.yaml exec app ./mvnw -B -ntp -DskipTests compile
+docker compose exec app ./mvnw compile
 ```
 
 DevTools detects changes in the compiled classpath and restarts Spring Boot.
