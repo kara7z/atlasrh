@@ -5,9 +5,5 @@ spring:
     url: ${DB_URL:jdbc:mariadb://localhost:3306/atlasrh}
     username: ${DB_USERNAME:atlasrh}
     password: ${DB_PASSWORD:atlasrh_dev}
-  jpa:
-    open-in-view: false
-    hibernate:
-      ddl-auto: ${DDL_AUTO:validate}
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.xml

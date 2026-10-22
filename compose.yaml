@@ -14,7 +14,6 @@ services:
       DB_URL: jdbc:mariadb://mariadb:3306/atlasrh
       DB_USERNAME: ${DB_USERNAME:-atlasrh}
       DB_PASSWORD: ${DB_PASSWORD:-atlasrh_dev}
-      DDL_AUTO: ${DDL_AUTO:-validate}
     depends_on:
       mariadb:
         condition: service_healthy
