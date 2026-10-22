@@ -13,7 +13,7 @@ import org.springframework.data.relational.core.mapping.Table;
 public class Employee {
   @Id
   private Long id;
-  private String matricule;
+  private String employeeNumber;
   private String firstName;
   private String lastName;
   private String email;
@@ -27,7 +27,7 @@ public class Employee {
   private Long managerId;
 
   @Transient
-  private Departement department;
+  private Department department;
   @Transient
   private Employee manager;
   @Transient
@@ -45,12 +45,12 @@ public class Employee {
     this.id = id;
   }
 
-  public String getMatricule() {
-    return matricule;
+  public String getEmployeeNumber() {
+    return employeeNumber;
   }
 
-  public void setMatricule(String matricule) {
-    this.matricule = matricule;
+  public void setEmployeeNumber(String employeeNumber) {
+    this.employeeNumber = employeeNumber;
   }
 
   public String getFirstName() {
@@ -111,11 +111,11 @@ public class Employee {
     this.manager = null;
   }
 
-  public Departement getDepartment() {
+  public Department getDepartment() {
     return department;
   }
 
-  public void setDepartment(Departement department) {
+  public void setDepartment(Department department) {
     this.department = department;
     this.departmentId = department == null ? null : department.getId();
   }

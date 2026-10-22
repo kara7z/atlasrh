@@ -7,8 +7,8 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.relational.core.mapping.Table;
 
-@Table("departements")
-public class Departement {
+@Table("departments")
+public class Department {
   @Id
   private Long id;
   private String name;
