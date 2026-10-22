@@ -1,6 +1,6 @@
 # AtlasRH
 
-Spring Boot application using Java 21, Maven, Spring Web MVC, Spring Data JPA, and MariaDB.
+Spring Boot application using Java 21, Maven, Spring Web MVC, Spring Data JDBC, and MariaDB.
 
 ## Requirements
 
@@ -124,7 +124,6 @@ Environment variables supported by the application:
 - `DB_URL`: JDBC connection URL
 - `DB_USERNAME`: database username
 - `DB_PASSWORD`: database password
-- `DDL_AUTO`: Hibernate schema mode (default: `validate`; Liquibase manages schema changes)
 
 Compose also accepts `DB_USERNAME`, `DB_PASSWORD`, and `DB_ROOT_PASSWORD`.
 If you override credentials, use matching values for the database and application.
@@ -142,10 +141,19 @@ datasource. The master changelog is:
 src/main/resources/db/changelog/db.changelog-master.xml
 ```
 
-It is initially empty because the project has no JPA entities yet. Add versioned
-changesets there, or include separate migration files, before introducing entities
-that need tables. Hibernate validates the resulting schema; it does not create or
-update tables. Keep `DDL_AUTO=validate` when using Liquibase.
+The master includes four ordered migration files, one per table: `departements`,
+`employees`, `contracts`, and `leave_requests`, including foreign keys and unique
+constraints on department names, employee matricules, and employee emails.
+Managers and contract end dates are optional. Foreign keys prevent deleting
+records that are still referenced; related HR records are not deleted automatically.
+
+Add new versioned changesets for future schema changes. Spring Data JDBC does not
+create, update, or validate the schema automatically; Liquibase manages schema changes.
+
+Map models using Spring Data's `@Table` and `@Id` annotations, with `@Column` when
+needed. Repositories can extend `CrudRepository` or `ListCrudRepository`. For
+generated IDs, define auto-increment columns in the Liquibase changesets; no JPA
+`@Entity` or `@GeneratedValue` annotations are needed.
 
 Liquibase records applied changesets in `DATABASECHANGELOG`. Do not edit changesets
 already applied to a shared database; add new changesets instead. Existing tables
