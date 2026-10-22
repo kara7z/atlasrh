@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 @RestController
 public class HomeController {
   @GetMapping("/")
-  public String getMethodName() {
+  public String home() {
     return new String("Hello World");
   }
 

@@ -1,17 +1,23 @@
 services:
   app:
-    build: .
+    build:
+      context: .
+      target: build
+    working_dir: /workspace
+    entrypoint: ["./mvnw", "-B", "-ntp", "spring-boot:run"]
+    command: []
+    volumes:
+      - ./src:/workspace/src:ro
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:8081:8080"
     environment:
       DB_URL: jdbc:mariadb://mariadb:3306/atlasrh
       DB_USERNAME: ${DB_USERNAME:-atlasrh}
       DB_PASSWORD: ${DB_PASSWORD:-atlasrh_dev}
-      DDL_AUTO: ${DDL_AUTO:-update}
+      DDL_AUTO: ${DDL_AUTO:-validate}
     depends_on:
       mariadb:
         condition: service_healthy
-
   mariadb:
     image: mariadb:11.4
     environment:

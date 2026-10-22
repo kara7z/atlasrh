@@ -45,7 +45,7 @@ DB_URL=jdbc:mariadb://localhost:3307/atlasrh java -jar target/atlasrh-0.0.1-SNAP
 Start the database separately before running the JAR. The explicit URL is necessary because `compose.yaml` exposes
 port **3307**, while the fallback in `application.yaml` uses **3306**.
 
-## Build and run the Docker image
+## Run development in Docker
 
 Java does not need to be installed on the host for this option.
 
@@ -54,25 +54,29 @@ docker compose up --build -d
 docker compose logs -f app
 ```
 
-Compose builds the application using `Dockerfile` and starts it after MariaDB is
+Compose uses the `build` stage of `Dockerfile` and runs Maven with DevTools after MariaDB is
 healthy. Containers connect using the service name `mariadb` and its
 internal port **3306**, not the host port **3307** or `localhost`.
 
-The Dockerfile builds the JAR in a Java 21 JDK stage, then copies only the JAR into
-an Alpine Java 21 JRE image. The application runs as a non-root user. Tests are
-skipped during image builds; run them separately.
+The single `compose.yaml` is development-focused: it uses the Java 21 JDK stage,
+mounts your source files, and runs `spring-boot:run`. Tests are skipped during image
+builds; run them separately. No override file is needed.
+
+The Dockerfile still provides a separate lightweight, non-root runtime stage for
+packaged deployments. `docker build -t atlasrh .` builds that final image; Compose
+deliberately uses the development stage instead.
 
 Both the application and database run in Docker. Open `http://localhost:8080`.
 Stop any locally running application or old standalone app container first to free port 8080.
 
 ## DevTools inside Docker
 
-Use the development override to run with Maven and DevTools instead of the
-packaged JAR. Source files are mounted read-only; compiled files stay inside the
-container. Java does not need to be installed on your computer.
+DevTools is enabled by the single Compose file. Source files are mounted read-only;
+compiled files stay inside the container. Java does not need to be installed on
+your computer.
 
 ```bash
-docker compose -f compose.yaml -f compose.dev.yaml up --build -d
+docker compose up --build -d
 ```
 
 After changing Java code or application resources, compile inside the running container:
@@ -89,46 +93,67 @@ wrapper, or `Dockerfile`, since those files are copied into the image.
 View logs:
 
 ```bash
-docker compose -f compose.yaml -f compose.dev.yaml logs -f app
+docker compose logs -f app
 ```
 
-Return to the normal packaged application:
+Rebuild the development app after dependency or Dockerfile changes:
 
 ```bash
 docker compose up --build -d app
 ```
 
-This replaces the development app container without deleting the database volume.
-Development-only class changes inside the old container are discarded; your source
-files remain on your computer.
+This replaces the app container without deleting the database volume. Compiled
+classes inside the old container are discarded; your source files remain on your
+computer and Maven recompiles them on startup.
 
 ## Database configuration
 
 Development defaults:
 
-| Setting | Value |
-| --- | --- |
-| Database | `atlasrh` |
-| Username | `atlasrh` |
-| Password | `atlasrh_dev` |
-| Root password | `root_dev_only` |
-| Host address | `127.0.0.1:3307` |
-| Container address | `mariadb:3306` |
+| Setting           | Value               |
+| ----------------- | ------------------- |
+| Database          | `atlasrh`           |
+| Username          | `atlasrh`           |
+| Password          | `atlasrh_dev`       |
+| Root password     | `root_dev_only`     |
+| Host address      | jf `127.0.0.1:3307` |
+| Container address | `mariadb:3306`      |
 
 Environment variables supported by the application:
 
 - `DB_URL`: JDBC connection URL
 - `DB_USERNAME`: database username
 - `DB_PASSWORD`: database password
-- `DDL_AUTO`: Hibernate schema mode (default: `update`)
+- `DDL_AUTO`: Hibernate schema mode (default: `validate`; Liquibase manages schema changes)
 
 Compose also accepts `DB_USERNAME`, `DB_PASSWORD`, and `DB_ROOT_PASSWORD`.
 If you override credentials, use matching values for the database and application.
 MariaDB initialization variables only take effect with a new, empty data volume;
 changing them does not update credentials in an existing database.
 
-These passwords and automatic schema updates are for **local development only**.
-Use secret management and versioned database migrations for production.
+These passwords are for **local development only**. Use secret management for production.
+
+## Database migrations (Liquibase)
+
+Liquibase runs automatically at application startup using the configured MariaDB
+datasource. The master changelog is:
+
+```text
+src/main/resources/db/changelog/db.changelog-master.xml
+```
+
+It is initially empty because the project has no JPA entities yet. Add versioned
+changesets there, or include separate migration files, before introducing entities
+that need tables. Hibernate validates the resulting schema; it does not create or
+update tables. Keep `DDL_AUTO=validate` when using Liquibase.
+
+Liquibase records applied changesets in `DATABASECHANGELOG`. Do not edit changesets
+already applied to a shared database; add new changesets instead. Existing tables
+are not automatically imported into the changelog and need a reviewed baseline
+before adding migrations that would recreate them.
+
+The application uses Spring Boot's managed Liquibase dependency versions. There is
+no Maven Liquibase plugin or automatic entity-to-changelog generation configured.
 
 ## Tests
 
@@ -155,7 +180,10 @@ docker compose logs -f app
 docker compose stop app
 docker compose start app
 
-# Rebuild and recreate the app after code changes
+# Recompile source changes for DevTools
+docker compose exec app ./mvnw compile
+
+# Rebuild after dependency or Dockerfile changes
 docker compose up --build -d app
 
 # Stop both services; keep the database data

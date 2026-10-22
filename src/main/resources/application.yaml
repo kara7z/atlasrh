@@ -8,5 +8,6 @@ spring:
   jpa:
     open-in-view: false
     hibernate:
-      # Development only; use database migrations in production.
-      ddl-auto: ${DDL_AUTO:update}
+      ddl-auto: ${DDL_AUTO:validate}
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.xml
