@@ -141,9 +141,9 @@ datasource. The master changelog is:
 src/main/resources/db/changelog/db.changelog-master.xml
 ```
 
-The master includes four ordered migration files, one per table: `departements`,
+The master includes four ordered table migrations. The resulting tables are `departments`,
 `employees`, `contracts`, and `leave_requests`, including foreign keys and unique
-constraints on department names, employee matricules, and employee emails.
+constraints on department names, employee numbers, and employee emails.
 Managers and contract end dates are optional. Foreign keys prevent deleting
 records that are still referenced; related HR records are not deleted automatically.
 
