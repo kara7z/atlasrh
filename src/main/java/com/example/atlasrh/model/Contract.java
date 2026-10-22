@@ -1,5 +1,7 @@
 package com.example.atlasrh.model;
 
+import com.example.atlasrh.enums.ContractType;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 

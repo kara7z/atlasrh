@@ -1,5 +1,8 @@
 package com.example.atlasrh.model;
 
+import com.example.atlasrh.enums.LeaveType;
+import com.example.atlasrh.enums.RequestStatus;
+
 import java.time.LocalDate;
 
 import org.springframework.data.annotation.Id;
