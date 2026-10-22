@@ -4,5 +4,8 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                         https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
-    <!-- Add changesets or include migration files here as the schema grows. -->
+    <include file="001-create-departements.xml" relativeToChangelogFile="true"/>
+    <include file="002-create-employees.xml" relativeToChangelogFile="true"/>
+    <include file="003-create-contracts.xml" relativeToChangelogFile="true"/>
+    <include file="004-create-leave-requests.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>
