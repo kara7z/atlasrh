@@ -1,16 +1,17 @@
 package com.example.atlasrh.controller;
 
-import com.example.atlasrh.service.AuthService;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.example.atlasrh.service.AuthService;
 
 /**
  * AuthController
  */
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping
 public class AuthController {
 
   private final AuthService authService;
@@ -21,7 +22,7 @@ public class AuthController {
 
   @GetMapping("/login")
   public String login() {
-    return authService.pageName("Login Page");
+    return authService.pageName("Hello in login page");
   }
 
 }

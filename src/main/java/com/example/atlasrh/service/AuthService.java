@@ -3,7 +3,7 @@ package com.example.atlasrh.service;
 import org.springframework.stereotype.Service;
 
 /**
- * AuthService
+ * Auth eService
  */
 @Service
 public class AuthService {
