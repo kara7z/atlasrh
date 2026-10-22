@@ -2,7 +2,6 @@
 <databaseChangeLog
     xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    logicalFilePath="db/changelog/001-create-hr-tables.xml"
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                         https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
@@ -11,8 +10,8 @@
             <column name="id" type="BIGINT" autoIncrement="true">
                 <constraints primaryKey="true" nullable="false" primaryKeyName="pk_employees"/>
             </column>
-            <column name="matricule" type="VARCHAR(255)">
-                <constraints nullable="false" unique="true" uniqueConstraintName="uk_employees_matricule"/>
+            <column name="employee_number" type="VARCHAR(255)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uk_employees_employee_number"/>
             </column>
             <column name="first_name" type="VARCHAR(255)">
                 <constraints nullable="false"/>
@@ -36,7 +35,7 @@
         </createTable>
         <addForeignKeyConstraint constraintName="fk_employees_department"
             baseTableName="employees" baseColumnNames="department_id"
-            referencedTableName="departements" referencedColumnNames="id"
+            referencedTableName="departments" referencedColumnNames="id"
             onDelete="RESTRICT" onUpdate="RESTRICT"/>
         <addForeignKeyConstraint constraintName="fk_employees_manager"
             baseTableName="employees" baseColumnNames="manager_id"
