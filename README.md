@@ -24,8 +24,8 @@ Containers are managed manually with `docker compose`; the application does not
 start them automatically. Stop the Docker app first with `docker compose stop app`
 if it is already running, to avoid a port conflict.
 
-The application listens on `http://localhost:8080`. There is no `/` endpoint yet,
-so a 404 at that address does not necessarily mean startup failed. Check the startup logs.
+The application listens on `http://localhost:8080`. The existing `/` and `/login`
+endpoints return placeholder text; HR REST endpoints are implemented in later stories.
 
 ## Build locally
 
@@ -165,7 +165,13 @@ no Maven Liquibase plugin or automatic entity-to-changelog generation configured
 
 ## Tests
 
-Start the database and supply its host port explicitly:
+Run the mapper, service, controller, and architecture tests without a database:
+
+```bash
+./mvnw -Dtest=MapperTests,ServiceTests,AuthControllerTests,ArchitectureTests test
+```
+
+For the full suite, start MariaDB and supply its host port explicitly:
 
 ```bash
 docker compose up -d --wait mariadb
@@ -173,6 +179,53 @@ DB_URL=jdbc:mariadb://localhost:3307/atlasrh ./mvnw test
 ```
 
 Tests use the database you started above; they do not start Docker Compose automatically.
+The application integration test exercises all four JDBC repositories and DTO services;
+its inserted records are rolled back after the test. Liquibase still applies pending
+migrations at context startup, so use a development/test database, not production.
+
+## Layered architecture
+
+All application packages are under `com.example.atlasrh`:
+
+| Package | Responsibility |
+| --- | --- |
+| `controller` | HTTP handling; depends on service interfaces, never repositories or entities |
+| `service` | Public service interfaces; exposes DTOs, not persistence entities |
+| `service.impl` | Spring-managed implementations; transaction boundaries, repository access, and DTO conversion |
+| `repository` | Spring Data JDBC `ListCrudRepository` interfaces for persistence |
+| `entity` | The four JDBC-mapped entities: Department, Employee, Contract, and LeaveRequest |
+| `dto` | Immutable Java records exchanged across the service boundary |
+| `mapper` | MapStruct entity ↔ DTO mappings and shared configuration |
+| `enums` | Contract types, leave types, and request statuses |
+
+Dependencies flow from controller → service interface → service implementation →
+repository. Spring injects implementations, repositories, and generated mappers
+through constructors. Keeping controllers dependent on interfaces makes them
+testable with a mock service, without loading JDBC or a database.
+
+The four HR services provide read-only `findAll()` and `findById(Long)` operations
+returning `List<...Dto>` and `Optional<...Dto>`. Mapping occurs inside the service's
+read-only transaction; entities stay behind the service boundary. A missing record
+is represented by `Optional.empty()`; HTTP error translation, write operations,
+business rules, and HR controllers belong to the subsequent Jira stories.
+The existing `AuthService` also follows the interface/implementation pattern,
+without changing `/login` behavior.
+
+MapStruct 1.6.3 generates Spring components during Maven compilation. Shared
+`MappingConfig` selects the Spring component model, constructor injection, and
+compile-time errors for unmapped target properties. Do not edit generated files
+under `target/generated-sources/annotations`.
+
+DTOs carry relationship IDs (`departmentId`, `managerId`, `employeeId`), not nested
+entities. Reverse mappings deliberately ignore transient navigation properties
+and collections, retaining foreign keys without recursively rebuilding a graph.
+For example, an employee's manager/team cycle cannot cause recursive JSON output.
+Future write services must validate relationship IDs and server-controlled fields
+(such as IDs and leave status) before saving; these mappers are not validation.
+
+`ArchitectureTests` guards the layer boundaries. `MapperTests` verifies Spring
+mapper discovery, both mapping directions, nullable fields, enums, and cyclic
+relationships. `ServiceTests` verifies DTO-only reads and missing/empty results.
 
 ## Useful Docker commands
 

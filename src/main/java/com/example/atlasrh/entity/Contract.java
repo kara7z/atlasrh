@@ -1,4 +1,4 @@
-package com.example.atlasrh.model;
+package com.example.atlasrh.entity;
 
 import com.example.atlasrh.enums.ContractType;
 
