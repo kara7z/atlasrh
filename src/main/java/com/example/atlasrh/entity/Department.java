@@ -7,9 +7,18 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.relational.core.mapping.Table;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
 @Table("departments")
 public class Department {
   @Id
+  @Setter(AccessLevel.NONE)
   private Long id;
   private String name;
   private String description;
@@ -17,35 +26,4 @@ public class Department {
   @Transient
   private List<Employee> employees = new ArrayList<>();
 
-  public Long getId() {
-    return id;
-  }
-
-  public void setId(Long id) {
-    this.id = id;
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
-  }
-
-  public String getDescription() {
-    return description;
-  }
-
-  public void setDescription(String description) {
-    this.description = description;
-  }
-
-  public List<Employee> getEmployees() {
-    return employees;
-  }
-
-  public void setEmployees(List<Employee> employees) {
-    this.employees = employees;
-  }
 }

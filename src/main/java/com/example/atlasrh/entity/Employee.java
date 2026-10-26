@@ -9,9 +9,16 @@ import org.springframework.data.annotation.Transient;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 @Table("employees")
 public class Employee {
   @Id
+  @Setter(AccessLevel.NONE)
   private Long id;
   private String employeeNumber;
   private String firstName;
@@ -37,73 +44,9 @@ public class Employee {
   @Transient
   private List<LeaveRequest> leaveRequests = new ArrayList<>();
 
-  public Long getId() {
-    return id;
-  }
-
-  public void setId(Long id) {
-    this.id = id;
-  }
-
-  public String getEmployeeNumber() {
-    return employeeNumber;
-  }
-
-  public void setEmployeeNumber(String employeeNumber) {
-    this.employeeNumber = employeeNumber;
-  }
-
-  public String getFirstName() {
-    return firstName;
-  }
-
-  public void setFirstName(String firstName) {
-    this.firstName = firstName;
-  }
-
-  public String getLastName() {
-    return lastName;
-  }
-
-  public void setLastName(String lastName) {
-    this.lastName = lastName;
-  }
-
-  public String getEmail() {
-    return email;
-  }
-
-  public void setEmail(String email) {
-    this.email = email;
-  }
-
-  public String getPosition() {
-    return position;
-  }
-
-  public void setPosition(String position) {
-    this.position = position;
-  }
-
-  public LocalDate getHireDate() {
-    return hireDate;
-  }
-
-  public void setHireDate(LocalDate hireDate) {
-    this.hireDate = hireDate;
-  }
-
-  public Long getDepartmentId() {
-    return departmentId;
-  }
-
   public void setDepartmentId(Long departmentId) {
     this.departmentId = departmentId;
     this.department = null;
-  }
-
-  public Long getManagerId() {
-    return managerId;
   }
 
   public void setManagerId(Long managerId) {
@@ -111,17 +54,9 @@ public class Employee {
     this.manager = null;
   }
 
-  public Department getDepartment() {
-    return department;
-  }
-
   public void setDepartment(Department department) {
     this.department = department;
     this.departmentId = department == null ? null : department.getId();
-  }
-
-  public Employee getManager() {
-    return manager;
   }
 
   public void setManager(Employee manager) {
@@ -129,27 +64,4 @@ public class Employee {
     this.managerId = manager == null ? null : manager.getId();
   }
 
-  public List<Employee> getTeam() {
-    return team;
-  }
-
-  public void setTeam(List<Employee> team) {
-    this.team = team;
-  }
-
-  public List<Contract> getContracts() {
-    return contracts;
-  }
-
-  public void setContracts(List<Contract> contracts) {
-    this.contracts = contracts;
-  }
-
-  public List<LeaveRequest> getLeaveRequests() {
-    return leaveRequests;
-  }
-
-  public void setLeaveRequests(List<LeaveRequest> leaveRequests) {
-    this.leaveRequests = leaveRequests;
-  }
 }

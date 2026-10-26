@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mapstruct.factory.Mappers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.example.atlasrh.dto.ContractDto;
 import com.example.atlasrh.dto.DepartmentDto;
@@ -61,13 +62,14 @@ class ServiceTests {
     departmentService = new DepartmentServiceImpl(departmentRepository, Mappers.getMapper(DepartmentMapper.class));
     employeeService = new EmployeeServiceImpl(employeeRepository, Mappers.getMapper(EmployeeMapper.class));
     contractService = new ContractServiceImpl(contractRepository, Mappers.getMapper(ContractMapper.class));
-    leaveRequestService = new LeaveRequestServiceImpl(leaveRequestRepository, Mappers.getMapper(LeaveRequestMapper.class));
+    leaveRequestService = new LeaveRequestServiceImpl(leaveRequestRepository,
+        Mappers.getMapper(LeaveRequestMapper.class));
   }
 
   @Test
   void departmentsAreMappedInsideTheServiceBoundary() {
     Department entity = new Department();
-    entity.setId(1L);
+    ReflectionTestUtils.setField(entity, "id", 1L);
     entity.setName("Engineering");
     entity.setDescription("Product development");
     DepartmentDto expected = new DepartmentDto(1L, "Engineering", "Product development");
@@ -83,7 +85,7 @@ class ServiceTests {
   @Test
   void employeesAreMappedInsideTheServiceBoundary() {
     Employee entity = new Employee();
-    entity.setId(2L);
+    ReflectionTestUtils.setField(entity, "id", 2L);
     entity.setEmployeeNumber("EMP-002");
     entity.setFirstName("Sara");
     entity.setLastName("Amrani");
@@ -106,7 +108,7 @@ class ServiceTests {
   @Test
   void contractsAreMappedInsideTheServiceBoundary() {
     Contract entity = new Contract();
-    entity.setId(4L);
+    ReflectionTestUtils.setField(entity, "id", 4L);
     entity.setEmployeeId(2L);
     entity.setType(ContractType.PERMANENT);
     entity.setStartDate(LocalDate.of(2026, 1, 1));
@@ -125,7 +127,7 @@ class ServiceTests {
   @Test
   void leaveRequestsAreMappedInsideTheServiceBoundary() {
     LeaveRequest entity = new LeaveRequest();
-    entity.setId(5L);
+    ReflectionTestUtils.setField(entity, "id", 5L);
     entity.setEmployeeId(2L);
     entity.setLeaveType(LeaveType.ANNUAL);
     entity.setStartDate(LocalDate.of(2026, 11, 2));

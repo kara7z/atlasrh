@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.example.atlasrh.dto.ContractDto;
 import com.example.atlasrh.dto.DepartmentDto;
@@ -75,11 +76,11 @@ class MapperTests {
     assertThat(entity.getLeaveRequests()).isEmpty();
 
     Department department = new Department();
-    department.setId(1L);
+    ReflectionTestUtils.setField(department, "id", 1L);
     department.setEmployees(List.of(entity));
     entity.setDepartment(department);
     Employee manager = new Employee();
-    manager.setId(3L);
+    ReflectionTestUtils.setField(manager, "id", 3L);
     manager.setTeam(List.of(entity));
     entity.setManager(manager);
     entity.setTeam(List.of(manager));
@@ -107,7 +108,7 @@ class MapperTests {
     assertThat(entity.getEmployee()).isNull();
 
     Employee employee = new Employee();
-    employee.setId(2L);
+    ReflectionTestUtils.setField(employee, "id", 2L);
     employee.setContracts(List.of(entity));
     entity.setEmployee(employee);
     assertThat(contractMapper.toDto(entity)).isEqualTo(dto);
@@ -128,7 +129,7 @@ class MapperTests {
     assertThat(entity.getEmployee()).isNull();
 
     Employee employee = new Employee();
-    employee.setId(2L);
+    ReflectionTestUtils.setField(employee, "id", 2L);
     employee.setLeaveRequests(List.of(entity));
     entity.setEmployee(employee);
     assertThat(leaveRequestMapper.toDto(entity)).isEqualTo(dto);
