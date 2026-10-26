@@ -28,6 +28,7 @@ public class Department {
   private String description;
 
   @Transient
+  @Builder.Default
   private List<Employee> employees = new ArrayList<>();
 
 }

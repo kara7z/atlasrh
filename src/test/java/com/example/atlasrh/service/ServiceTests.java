@@ -59,7 +59,8 @@ class ServiceTests {
 
   @BeforeEach
   void setUp() {
-    departmentService = new DepartmentServiceImpl(departmentRepository, Mappers.getMapper(DepartmentMapper.class));
+    departmentService = new DepartmentServiceImpl(departmentRepository, Mappers.getMapper(DepartmentMapper.class),
+        employeeRepository);
     employeeService = new EmployeeServiceImpl(employeeRepository, Mappers.getMapper(EmployeeMapper.class));
     contractService = new ContractServiceImpl(contractRepository, Mappers.getMapper(ContractMapper.class));
     leaveRequestService = new LeaveRequestServiceImpl(leaveRequestRepository,
