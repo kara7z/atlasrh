@@ -4,7 +4,10 @@ import com.example.atlasrh.enums.LeaveType;
 import com.example.atlasrh.enums.RequestStatus;
 
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
@@ -14,9 +17,11 @@ import org.springframework.data.annotation.Transient;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
+@NoArgsConstructor
+@AllArgsConstructor
 @Getter
 @Setter
-
+@Builder
 @Table("leave_requests")
 public class LeaveRequest {
   @Id

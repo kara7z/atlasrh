@@ -8,13 +8,17 @@ import org.springframework.data.annotation.Transient;
 import org.springframework.data.relational.core.mapping.Table;
 
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Getter
-@Setter
 @NoArgsConstructor
+@AllArgsConstructor
+@Getter
+@Builder
+@Setter
 @Table("departments")
 public class Department {
   @Id

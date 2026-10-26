@@ -10,11 +10,17 @@ import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+@NoArgsConstructor
+@AllArgsConstructor
 @Getter
 @Setter
+@Builder
 @Table("employees")
 public class Employee {
   @Id
@@ -38,10 +44,13 @@ public class Employee {
   @Transient
   private Employee manager;
   @Transient
+  @Builder.Default
   private List<Employee> team = new ArrayList<>();
   @Transient
+  @Builder.Default
   private List<Contract> contracts = new ArrayList<>();
   @Transient
+  @Builder.Default
   private List<LeaveRequest> leaveRequests = new ArrayList<>();
 
   public void setDepartmentId(Long departmentId) {
