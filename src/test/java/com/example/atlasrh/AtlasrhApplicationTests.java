@@ -25,7 +25,6 @@ import com.example.atlasrh.repository.ContractRepository;
 import com.example.atlasrh.repository.DepartmentRepository;
 import com.example.atlasrh.repository.EmployeeRepository;
 import com.example.atlasrh.repository.LeaveRequestRepository;
-import com.example.atlasrh.service.AuthService;
 import com.example.atlasrh.service.ContractService;
 import com.example.atlasrh.service.DepartmentService;
 import com.example.atlasrh.service.EmployeeService;
@@ -42,8 +41,6 @@ class AtlasrhApplicationTests {
   @Autowired
   private LeaveRequestRepository leaveRequestRepository;
   @Autowired
-  private AuthService authService;
-  @Autowired
   private DepartmentService departmentService;
   @Autowired
   private EmployeeService employeeService;
@@ -51,11 +48,6 @@ class AtlasrhApplicationTests {
   private ContractService contractService;
   @Autowired
   private LeaveRequestService leaveRequestService;
-
-  @Test
-  void contextLoads() {
-    assertThat(authService.pageName("Hello in login page")).isEqualTo("HELLO IN LOGIN PAGE");
-  }
 
   @Test
   @Transactional

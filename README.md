@@ -24,8 +24,8 @@ Containers are managed manually with `docker compose`; the application does not
 start them automatically. Stop the Docker app first with `docker compose stop app`
 if it is already running, to avoid a port conflict.
 
-The application listens on `http://localhost:8080`. The existing `/` and `/login`
-endpoints return placeholder text; HR REST endpoints are implemented in later stories.
+The application listens on `http://localhost:8080`. The `/` endpoint returns placeholder text.
+Department CRUD is available at `/api/departments`.
 
 ## Build locally
 
@@ -168,7 +168,7 @@ no Maven Liquibase plugin or automatic entity-to-changelog generation configured
 Run the mapper, service, controller, and architecture tests without a database:
 
 ```bash
-./mvnw -Dtest=MapperTests,ServiceTests,AuthControllerTests,ArchitectureTests test
+./mvnw -Dtest=MapperTests,ServiceTests,HomeControllerTests,DepartmentServiceTests,DepartmentControllerTests,ApiExceptionHandlerTests,DtoValidationTests,ArchitectureTests test
 ```
 
 For the full suite, start MariaDB and supply its host port explicitly:
@@ -182,6 +182,43 @@ Tests use the database you started above; they do not start Docker Compose autom
 The application integration test exercises all four JDBC repositories and DTO services;
 its inserted records are rolled back after the test. Liquibase still applies pending
 migrations at context startup, so use a development/test database, not production.
+
+## Validation and API errors
+
+Request bodies are validated with Jakarta Bean Validation. Required fields, email format,
+positive reference IDs, string lengths, and salary precision are checked before controller
+logic runs. Contract and leave DTO constraints are available for their future write endpoints.
+
+`ApiExceptionHandler` handles errors centrally using `application/problem+json`:
+
+```json
+{
+  "type": "about:blank",
+  "title": "Bad Request",
+  "status": 400,
+  "detail": "Request validation failed",
+  "instance": "/api/departments",
+  "errors": [
+    {"field": "name", "message": "Department name is required"}
+  ]
+}
+```
+
+| Condition | Status |
+| --- | --- |
+| Successful read/update | `200` |
+| Department created | `201`, with a `Location` header |
+| Department deleted | `204` |
+| Invalid fields, JSON, parameter types, or business operation | `400` |
+| Missing resource | `404` |
+| Duplicate department name or deletion with employees | `409` |
+
+Business exceptions use `BadRequestException`, `ResourceNotFoundException`, and
+`ConflictException`; department-specific exceptions extend these shared types.
+Non-validation errors have an empty `errors` array. Parsing errors never include
+raw request bodies or internal exception details. Framework errors such as unsupported
+methods (`405`) and content types (`415`) retain their status and headers.
+Successful responses remain DTOs, not error envelopes.
 
 ## Layered architecture
 
@@ -208,8 +245,6 @@ returning `List<...Dto>` and `Optional<...Dto>`. Mapping occurs inside the servi
 read-only transaction; entities stay behind the service boundary. A missing record
 is represented by `Optional.empty()`; HTTP error translation, write operations,
 business rules, and HR controllers belong to the subsequent Jira stories.
-The existing `AuthService` also follows the interface/implementation pattern,
-without changing `/login` behavior.
 
 MapStruct 1.6.3 generates Spring components during Maven compilation. Shared
 `MappingConfig` selects the Spring component model, constructor injection, and

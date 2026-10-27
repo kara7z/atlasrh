@@ -19,6 +19,7 @@ import com.example.atlasrh.exception.DepartmentNotFoundException;
 import com.example.atlasrh.service.DepartmentService;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 
 @RestController
 @RequestMapping("/api/departments")
@@ -35,7 +36,7 @@ public class DepartmentController {
   }
 
   @GetMapping("/{id}")
-  public DepartmentDto findById(@PathVariable Long id) {
+  public DepartmentDto findById(@PathVariable @Positive(message = "Department ID must be positive") Long id) {
     return service.findById(id).orElseThrow(() -> new DepartmentNotFoundException(id));
   }
 
@@ -46,12 +47,13 @@ public class DepartmentController {
   }
 
   @PutMapping("/{id}")
-  public DepartmentDto update(@PathVariable Long id, @Valid @RequestBody DepartmentRequest request) {
+  public DepartmentDto update(@PathVariable @Positive(message = "Department ID must be positive") Long id,
+      @Valid @RequestBody DepartmentRequest request) {
     return service.update(id, request);
   }
 
   @DeleteMapping("/{id}")
-  public ResponseEntity<Void> delete(@PathVariable Long id) {
+  public ResponseEntity<Void> delete(@PathVariable @Positive(message = "Department ID must be positive") Long id) {
     service.delete(id);
     return ResponseEntity.noContent().build();
   }
