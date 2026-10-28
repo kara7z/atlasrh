@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,6 +43,34 @@ class EmployeeServiceTests {
   @BeforeEach
   void setUp() {
     service = new EmployeeServiceImpl(repository, Mappers.getMapper(EmployeeMapper.class), departmentRepository);
+  }
+
+  @Test
+  void returnsDirectReportsAsDtos() {
+    when(repository.existsById(3L)).thenReturn(true);
+    when(repository.findByManagerId(3L)).thenReturn(List.of(Employee.builder()
+        .id(2L).employeeNumber("EMP-1").firstName("Sara").managerId(3L).departmentId(1L).build()));
+
+    var team = service.findTeam(3L);
+    assertThat(team).hasSize(1);
+    assertThat(team.getFirst().id()).isEqualTo(2L);
+    assertThat(team.getFirst().firstName()).isEqualTo("Sara");
+    assertThat(team.getFirst().managerId()).isEqualTo(3L);
+    verify(repository).findByManagerId(3L);
+  }
+
+  @Test
+  void returnsEmptyTeamForExistingEmployeeWithoutReports() {
+    when(repository.existsById(3L)).thenReturn(true);
+    when(repository.findByManagerId(3L)).thenReturn(List.of());
+    assertThat(service.findTeam(3L)).isEmpty();
+  }
+
+  @Test
+  void rejectsMissingManagerBeforeQueryingTeam() {
+    assertThatThrownBy(() -> service.findTeam(99L)).isInstanceOf(ResourceNotFoundException.class)
+        .hasMessage("Manager not found: 99");
+    verify(repository, never()).findByManagerId(any());
   }
 
   @Test

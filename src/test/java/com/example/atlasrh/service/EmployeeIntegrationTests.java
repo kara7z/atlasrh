@@ -15,6 +15,7 @@ import com.example.atlasrh.dto.EmployeeRequest;
 import com.example.atlasrh.entity.Department;
 import com.example.atlasrh.exception.BadRequestException;
 import com.example.atlasrh.exception.ConflictException;
+import com.example.atlasrh.exception.ResourceNotFoundException;
 import com.example.atlasrh.repository.DepartmentRepository;
 
 @SpringBootTest
@@ -24,6 +25,39 @@ class EmployeeIntegrationTests {
   private EmployeeService service;
   @Autowired
   private DepartmentRepository departmentRepository;
+
+  @Test
+  void teamContainsOnlyDirectReportsAcrossDepartments() {
+    Long departmentId = departmentId();
+    var manager = service.create(request(departmentId, null));
+    var first = service.create(request(departmentId, manager.id()));
+    var second = service.create(request(departmentId(), manager.id()));
+    service.create(request(departmentId, first.id()));
+    service.create(request(departmentId, null));
+
+    assertThat(service.findTeam(manager.id())).containsExactlyInAnyOrder(first, second);
+    assertThat(service.findTeam(second.id())).isEmpty();
+  }
+
+  @Test
+  void teamChangesWhenAnEmployeeIsReassignedOrManagerIsCleared() {
+    Long departmentId = departmentId();
+    var manager = service.create(request(departmentId, null));
+    var otherManager = service.create(request(departmentId, null));
+    var employee = service.create(request(departmentId, manager.id()));
+    var reassigned = service.update(employee.id(), request(departmentId, otherManager.id()));
+
+    assertThat(service.findTeam(manager.id())).isEmpty();
+    assertThat(service.findTeam(otherManager.id())).containsExactly(reassigned);
+
+    service.update(employee.id(), request(departmentId, null));
+    assertThat(service.findTeam(otherManager.id())).isEmpty();
+  }
+
+  @Test
+  void missingManagerDoesNotReturnAnEmptyTeam() {
+    assertThatThrownBy(() -> service.findTeam(Long.MAX_VALUE)).isInstanceOf(ResourceNotFoundException.class);
+  }
 
   @Test
   void persistsCreatesAndUpdatesWithOptionalManager() {

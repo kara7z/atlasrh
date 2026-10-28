@@ -11,6 +11,8 @@ public interface EmployeeService {
 
   Optional<EmployeeDto> findById(Long id);
 
+  List<EmployeeDto> findTeam(Long managerId);
+
   EmployeeDto create(EmployeeRequest request);
 
   EmployeeDto update(Long id, EmployeeRequest request);

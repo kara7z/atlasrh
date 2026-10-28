@@ -251,6 +251,21 @@ An employee cannot be their own manager (`400`). Setting `managerId` to null or
 omitting it on PUT clears the manager. Invalid fields return `400`. List pagination,
 sorting, and search are reserved for ATLAS-14.
 
+## Manager team (ATLAS-15)
+
+`GET /api/managers/{id}/team` returns `200` with an array of employee DTOs for
+the manager's **direct reports** (`managerId` equals the requested ID). Reports
+can belong to different departments; indirect reports and unrelated employees
+are not included. No ordering is guaranteed.
+
+An existing employee with no direct reports returns `[]`. A missing manager
+returns `404`; a nonpositive or malformed ID returns `400`. Responses contain
+relationship IDs, not nested manager/team objects. Reassigning or clearing an
+employee's manager is reflected in subsequent team requests.
+
+The repository uses Spring Data JDBC's derived `findByManagerId` query, not JPQL
+or JPA navigation properties.
+
 ## Layered architecture
 
 All application packages are under `com.example.atlasrh`:

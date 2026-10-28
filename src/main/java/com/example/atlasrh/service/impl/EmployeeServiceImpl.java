@@ -45,6 +45,14 @@ public class EmployeeServiceImpl implements EmployeeService {
   }
 
   @Override
+  public List<EmployeeDto> findTeam(Long managerId) {
+    if (!repository.existsById(managerId)) {
+      throw new ResourceNotFoundException("Manager not found: " + managerId);
+    }
+    return repository.findByManagerId(managerId).stream().map(mapper::toDto).toList();
+  }
+
+  @Override
   @Transactional
   public EmployeeDto create(EmployeeRequest request) {
     if (repository.existsByEmployeeNumber(request.employeeNumber()) || repository.existsByEmail(request.email())) {

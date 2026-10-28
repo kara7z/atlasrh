@@ -1,10 +1,14 @@
 package com.example.atlasrh.repository;
 
+import java.util.List;
+
 import org.springframework.data.repository.ListCrudRepository;
 
 import com.example.atlasrh.entity.Employee;
 
 public interface EmployeeRepository extends ListCrudRepository<Employee, Long> {
+  List<Employee> findByManagerId(Long managerId);
+
   boolean existsByDepartmentId(Long departmentId);
 
   boolean existsByEmployeeNumber(String employeeNumber);
