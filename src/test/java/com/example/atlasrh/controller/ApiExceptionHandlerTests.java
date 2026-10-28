@@ -27,7 +27,7 @@ import com.example.atlasrh.dto.DepartmentRequest;
 import com.example.atlasrh.exception.BadRequestException;
 import com.example.atlasrh.exception.ConflictException;
 import com.example.atlasrh.exception.ResourceNotFoundException;
-import com.example.atlasrh.mapper.EmployeeMapper;
+import com.example.atlasrh.service.EmployeeService;
 import com.example.atlasrh.service.DepartmentService;
 
 import jakarta.validation.ConstraintViolationException;
@@ -41,7 +41,7 @@ class ApiExceptionHandlerTests {
   @MockitoBean
   private DepartmentService service;
   @MockitoBean
-  private EmployeeMapper employeeMapper;
+  private EmployeeService employeeService;
 
   @Test
   void fieldValidationReturnsAUniformProblemWithClearMessages() throws Exception {
@@ -69,29 +69,29 @@ class ApiExceptionHandlerTests {
   }
 
   @Test
-  void employeeValidationRunsBeforeMapping() throws Exception {
-    mvc.perform(post("/employee").contentType(MediaType.APPLICATION_JSON)
+  void employeeValidationRunsBeforeService() throws Exception {
+    mvc.perform(post("/api/employees").contentType(MediaType.APPLICATION_JSON)
         .content("{\"email\":\"invalid-email\",\"departmentId\":0}"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.errors[*].field", hasItem("email")))
         .andExpect(jsonPath("$.errors[*].field", hasItem("departmentId")))
         .andExpect(jsonPath("$.errors[*].field", hasItem("employeeNumber")));
-    verifyNoInteractions(employeeMapper);
+    verifyNoInteractions(employeeService);
   }
 
   @ParameterizedTest
   @ValueSource(strings = {"{", "", "{\"hireDate\":\"not-a-date\"}", "{\"departmentId\":\"not-a-number\"}"})
   void invalidJsonAndTypesReturnASafeUniform400(String json) throws Exception {
-    mvc.perform(post("/employee").contentType(MediaType.APPLICATION_JSON).content(json))
+    mvc.perform(post("/api/employees").contentType(MediaType.APPLICATION_JSON).content(json))
         .andExpect(status().isBadRequest())
         .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
         .andExpect(jsonPath("$.title").value("Bad Request"))
         .andExpect(jsonPath("$.detail")
             .value("Request body is missing or contains invalid JSON, types, dates, or enum values"))
-        .andExpect(jsonPath("$.instance").value("/employee"))
+        .andExpect(jsonPath("$.instance").value("/api/employees"))
         .andExpect(jsonPath("$.errors").isEmpty())
         .andExpect(jsonPath("$.trace").doesNotExist());
-    verifyNoInteractions(employeeMapper);
+    verifyNoInteractions(employeeService);
   }
 
   @Test
