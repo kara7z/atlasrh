@@ -6,7 +6,7 @@ import org.springframework.data.repository.ListCrudRepository;
 
 import com.example.atlasrh.entity.Employee;
 
-public interface EmployeeRepository extends ListCrudRepository<Employee, Long> {
+public interface EmployeeRepository extends ListCrudRepository<Employee, Long>, EmployeeSearchRepository {
   List<Employee> findByManagerId(Long managerId);
 
   boolean existsByDepartmentId(Long departmentId);

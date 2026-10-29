@@ -248,8 +248,35 @@ ID comes from the URL):
 The department and optional manager must exist (`404`). Employee numbers and
 emails must be unique (`409`); retaining your own values on update is allowed.
 An employee cannot be their own manager (`400`). Setting `managerId` to null or
-omitting it on PUT clears the manager. Invalid fields return `400`. List pagination,
-sorting, and search are reserved for ATLAS-14.
+omitting it on PUT clears the manager. Invalid fields return `400`.
+
+## Employee list (ATLAS-14)
+
+`GET /api/employees?page=0&size=20&sort=lastName,asc&name=sara&departmentId=1`
+returns a paginated list using the existing MapStruct employee DTOs (no nested entities).
+
+- `page`: zero-based, defaults to `0`.
+- `size`: `1`–`100`, defaults to `20`.
+- `sort`: employee field and optional `asc`/`desc`; defaults to `id,asc`.
+  Repeat it for multiple fields, e.g. `sort=lastName,asc&sort=firstName,desc`.
+  Allowed fields: `id`, `employeeNumber`, `firstName`, `lastName`, `email`,
+  `position`, `hireDate`, `departmentId`, `managerId`. An ID tie-breaker is added
+  when not explicitly sorted by ID, ensuring stable page boundaries.
+- `name`: optional, trimmed, case-insensitive substring of first **or** last name;
+  blank means no name filter. `%` and `_` are literal characters, not wildcards.
+- `departmentId`: optional positive department ID; combined with `name` using AND.
+  Unknown department IDs yield an empty page, not `404`.
+
+The response has a stable JSON shape:
+
+```json
+{"content":[],"number":0,"size":20,"totalElements":0,"totalPages":0,"first":true,"last":true}
+```
+
+`content` contains employee records when matches exist. Out-of-range pages return
+empty content but retain the matching total. Invalid page/size/filter values or
+unsupported sort fields return `400`. Filtering, sorting, counting, and pagination
+run in the database through Spring Data JDBC, rather than loading all employees.
 
 ## Manager team (ATLAS-15)
 

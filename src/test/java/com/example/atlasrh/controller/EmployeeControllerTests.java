@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
@@ -18,6 +19,9 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -43,6 +47,54 @@ class EmployeeControllerTests {
       {"employeeNumber":"EMP-1","firstName":"Sara","lastName":"Amrani","email":"sara@example.com",
        "position":"Developer","hireDate":"2026-01-01","departmentId":1}
       """;
+
+  @Test
+  void listsEmployeesWithDefaultPagination() throws Exception {
+    var pageable = PageRequest.of(0, 20, Sort.by("id"));
+    when(service.search(null, null, pageable)).thenReturn(new PageImpl<>(List.of(employee), pageable, 1));
+    mvc.perform(get("/api/employees")).andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[0].id").value(2))
+        .andExpect(jsonPath("$.content[0].team").doesNotExist())
+        .andExpect(jsonPath("$.number").value(0)).andExpect(jsonPath("$.size").value(20))
+        .andExpect(jsonPath("$.totalElements").value(1)).andExpect(jsonPath("$.totalPages").value(1))
+        .andExpect(jsonPath("$.first").value(true)).andExpect(jsonPath("$.last").value(true));
+  }
+
+  @Test
+  void passesFiltersPaginationAndMultipleSortsToService() throws Exception {
+    var pageable = PageRequest.of(1, 5, Sort.by(Sort.Order.desc("lastName"), Sort.Order.asc("firstName")));
+    when(service.search("Sara", 1L, pageable)).thenReturn(new PageImpl<>(List.of(employee), pageable, 6));
+    mvc.perform(get("/api/employees").param("name", "Sara").param("departmentId", "1")
+        .param("page", "1").param("size", "5").param("sort", "lastName,desc", "firstName,asc"))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.number").value(1))
+        .andExpect(jsonPath("$.size").value(5)).andExpect(jsonPath("$.totalElements").value(6))
+        .andExpect(jsonPath("$.totalPages").value(2));
+  }
+
+  @Test
+  void returnsEmptyPage() throws Exception {
+    var pageable = PageRequest.of(0, 20, Sort.by("id"));
+    when(service.search(null, null, pageable)).thenReturn(new PageImpl<>(List.of(), pageable, 0));
+    mvc.perform(get("/api/employees")).andExpect(status().isOk())
+        .andExpect(jsonPath("$.content").isEmpty()).andExpect(jsonPath("$.totalElements").value(0));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"page=-1", "page=invalid", "size=0", "size=-1", "size=101", "size=invalid",
+      "departmentId=0", "departmentId=-1", "departmentId=invalid"})
+  void rejectsInvalidListParameters(String query) throws Exception {
+    String[] parts = query.split("=");
+    mvc.perform(get("/api/employees").param(parts[0], parts[1])).andExpect(status().isBadRequest());
+    verifyNoInteractions(service);
+  }
+
+  @Test
+  void unsupportedSortingReturns400() throws Exception {
+    var pageable = PageRequest.of(0, 20, Sort.by("unknown"));
+    when(service.search(null, null, pageable)).thenThrow(new BadRequestException("Unsupported employee sort field"));
+    mvc.perform(get("/api/employees").param("sort", "unknown,asc"))
+        .andExpect(status().isBadRequest()).andExpect(jsonPath("$.status").value(400));
+  }
 
   @Test
   void createsEmployeeWithLocationHeader() throws Exception {

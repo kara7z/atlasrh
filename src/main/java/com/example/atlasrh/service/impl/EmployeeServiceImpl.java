@@ -2,7 +2,12 @@ package com.example.atlasrh.service.impl;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
@@ -23,6 +28,8 @@ import com.example.atlasrh.service.EmployeeService;
 @Service
 @Transactional(readOnly = true)
 public class EmployeeServiceImpl implements EmployeeService {
+  private static final Set<String> SORT_FIELDS = Set.of("id", "employeeNumber", "firstName", "lastName", "email",
+      "position", "hireDate", "departmentId", "managerId");
   private final EmployeeRepository repository;
   private final EmployeeMapper mapper;
   private final DepartmentRepository departmentRepository;
@@ -37,6 +44,27 @@ public class EmployeeServiceImpl implements EmployeeService {
   @Override
   public List<EmployeeDto> findAll() {
     return repository.findAll().stream().map(mapper::toDto).toList();
+  }
+
+  @Override
+  public Page<EmployeeDto> search(String name, Long departmentId, Pageable pageable) {
+    if (pageable.isUnpaged() || pageable.getPageSize() > 100) {
+      throw new BadRequestException("Employee page size must be between 1 and 100");
+    }
+    if (departmentId != null && departmentId <= 0) {
+      throw new BadRequestException("Department ID must be positive");
+    }
+    for (Sort.Order order : pageable.getSort()) {
+      if (!SORT_FIELDS.contains(order.getProperty())) {
+        throw new BadRequestException("Unsupported employee sort field: " + order.getProperty());
+      }
+    }
+    Sort sort = pageable.getSort();
+    if (sort.getOrderFor("id") == null) {
+      sort = sort.and(Sort.by("id"));
+    }
+    Pageable stablePage = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
+    return repository.search(name, departmentId, stablePage).map(mapper::toDto);
   }
 
   @Override

@@ -18,6 +18,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.relational.core.conversion.DbAction;
 import org.springframework.data.relational.core.conversion.DbActionExecutionException;
 import org.springframework.data.relational.core.conversion.IdValueSource;
@@ -43,6 +47,41 @@ class EmployeeServiceTests {
   @BeforeEach
   void setUp() {
     service = new EmployeeServiceImpl(repository, Mappers.getMapper(EmployeeMapper.class), departmentRepository);
+  }
+
+  @Test
+  void paginatedSearchMapsDtosAndAddsStableIdSort() {
+    var pageable = PageRequest.of(1, 5, Sort.by("lastName"));
+    var stablePage = PageRequest.of(1, 5, Sort.by("lastName").and(Sort.by("id")));
+    when(repository.search("Sara", 1L, stablePage)).thenReturn(new PageImpl<>(List.of(Employee.builder()
+        .id(2L).firstName("Sara").departmentId(1L).build()), stablePage, 6));
+    var result = service.search("Sara", 1L, pageable);
+    assertThat(result.getTotalElements()).isEqualTo(6);
+    assertThat(result.getNumber()).isEqualTo(1);
+    assertThat(result.getContent()).hasSize(1);
+    assertThat(result.getContent().getFirst().firstName()).isEqualTo("Sara");
+    assertThat(result.getSort()).isEqualTo(stablePage.getSort());
+  }
+
+  @Test
+  void explicitIdSortIsPreserved() {
+    var pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "id"));
+    when(repository.search(null, null, pageable)).thenReturn(new PageImpl<>(List.of(), pageable, 0));
+    assertThat(service.search(null, null, pageable)).isEmpty();
+    verify(repository).search(null, null, pageable);
+  }
+
+  @Test
+  void validatesSortAndLimitsBeforeRepositoryAccess() {
+    assertThatThrownBy(() -> service.search(null, null, PageRequest.of(0, 20, Sort.by("department.name"))))
+        .isInstanceOf(BadRequestException.class);
+    assertThatThrownBy(() -> service.search(null, null, PageRequest.of(0, 101)))
+        .isInstanceOf(BadRequestException.class);
+    assertThatThrownBy(() -> service.search(null, null, Pageable.unpaged()))
+        .isInstanceOf(BadRequestException.class);
+    assertThatThrownBy(() -> service.search(null, -1L, PageRequest.of(0, 20)))
+        .isInstanceOf(BadRequestException.class);
+    verify(repository, never()).search(any(), any(), any());
   }
 
   @Test

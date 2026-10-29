@@ -9,6 +9,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.atlasrh.dto.EmployeeRequest;
@@ -25,6 +27,59 @@ class EmployeeIntegrationTests {
   private EmployeeService service;
   @Autowired
   private DepartmentRepository departmentRepository;
+
+  @Test
+  void filtersByNameAndDepartmentWithCorrectGroupingAndPagination() {
+    Long department = departmentId();
+    var first = service.create(namedRequest(department, "Sara", "Alpha"));
+    var second = service.create(namedRequest(department, "Omar", "Sara"));
+    service.create(namedRequest(department, "Unrelated", "Person"));
+    service.create(namedRequest(departmentId(), "Sara", "Elsewhere"));
+
+    var page = service.search("  sArA  ", department, PageRequest.of(0, 1, Sort.by("lastName")));
+    assertThat(page.getContent()).containsExactly(first);
+    assertThat(page.getTotalElements()).isEqualTo(2);
+    assertThat(page.getTotalPages()).isEqualTo(2);
+    assertThat(service.search("sara", department, PageRequest.of(1, 1, Sort.by("lastName"))).getContent())
+        .containsExactly(second);
+    var beyond = service.search("sara", department, PageRequest.of(5, 1));
+    assertThat(beyond.getContent()).isEmpty();
+    assertThat(beyond.getTotalElements()).isEqualTo(2);
+  }
+
+  @Test
+  void supportsDepartmentOnlyBlankNameAndMissingDepartment() {
+    Long department = departmentId();
+    var first = service.create(namedRequest(department, "Same", "Name"));
+    var second = service.create(namedRequest(department, "Same", "Name"));
+    var pageable = PageRequest.of(0, 20);
+
+    assertThat(service.search(null, department, pageable).getContent()).containsExactly(first, second);
+    assertThat(service.search("  ", department, pageable).getContent()).containsExactly(first, second);
+    assertThat(service.search(null, Long.MAX_VALUE, pageable).getContent()).isEmpty();
+    assertThat(service.search(null, department, PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "id")))
+        .getContent()).containsExactly(second, first);
+  }
+
+  @Test
+  void searchesWithoutDepartmentAndTreatsWildcardsAndQuotesAsLiteralInput() {
+    String unique = UUID.randomUUID().toString();
+    var first = service.create(namedRequest(departmentId(), unique + "%_", "O'Neil"));
+    var second = service.create(namedRequest(departmentId(), unique + "Other", "Person"));
+    var pageable = PageRequest.of(0, 20);
+
+    assertThat(service.search(unique, null, pageable).getContent()).containsExactly(first, second);
+    assertThat(service.search(unique + "%_", null, pageable).getContent()).containsExactly(first);
+    assertThat(service.search("' OR 1=1 --", null, pageable).getContent()).isEmpty();
+    assertThat(service.search("no-match-" + unique, null, pageable).getTotalElements()).isZero();
+    assertThat(service.search(null, null, pageable).getTotalElements()).isGreaterThanOrEqualTo(2);
+  }
+
+  private EmployeeRequest namedRequest(Long departmentId, String firstName, String lastName) {
+    var request = request(departmentId, null);
+    return new EmployeeRequest(request.employeeNumber(), firstName, lastName, request.email(), request.position(),
+        request.hireDate(), departmentId, null);
+  }
 
   @Test
   void teamContainsOnlyDirectReportsAcrossDepartments() {
