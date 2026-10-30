@@ -7,3 +7,11 @@ spring:
     password: ${DB_PASSWORD:atlasrh_dev}
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.xml
+
+springdoc:
+  override-with-generic-response: false
+  swagger-ui:
+    path: /swagger-ui.html
+    disable-swagger-default-url: true
+    tags-sorter: alpha
+    operations-sorter: alpha

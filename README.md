@@ -31,7 +31,7 @@ In Postman, choose **Body → form-data** and add text fields `name` (required) 
 `description` (optional). Let Postman generate the Content-Type and multipart boundary.
 For example: `curl -F 'name=Engineering' -F 'description=Development team' http://localhost:8080/api/departments`.
 Employee create/update/view endpoints are available at `/api/employees`.
-All current POST routes (`/api/departments` and `/api/employees`) support JSON,
+All current POST routes support JSON,
 multipart form-data, and URL-encoded forms. For employee form-data, use text fields
 `employeeNumber`, `firstName`, `lastName`, `email`, `position`, `hireDate`
 (`YYYY-MM-DD`), and `departmentId`. `managerId` is optional; omit it for no manager.
@@ -81,8 +81,64 @@ The Dockerfile still provides a separate lightweight, non-root runtime stage for
 packaged deployments. `docker build -t atlasrh .` builds that final image; Compose
 deliberately uses the development stage instead.
 
-Both the application and database run in Docker. Open `http://localhost:8080`.
-Stop any locally running application or old standalone app container first to free port 8080.
+Both the application and database run in Docker. Open `http://localhost:8081`.
+Compose maps host port **8081** to container port **8080**. Local Maven/JAR runs
+use host port **8080** instead.
+
+## Swagger / OpenAPI (ATLAS-22)
+
+The application uses springdoc-openapi **3.2.0**, compatible with Spring Boot 4.
+
+| Documentation | Docker | Local Maven/JAR |
+| --- | --- | --- |
+| Swagger UI | http://localhost:8081/swagger-ui.html | http://localhost:8080/swagger-ui.html |
+| OpenAPI JSON | http://localhost:8081/v3/api-docs | http://localhost:8080/v3/api-docs |
+| OpenAPI YAML | http://localhost:8081/v3/api-docs.yaml | http://localhost:8080/v3/api-docs.yaml |
+
+Expand a tag and operation, select **Try it out**, fill the URL/query fields and
+body, then select **Execute**. For writes, select `application/json`,
+`multipart/form-data`, or `application/x-www-form-urlencoded` from the request-body
+content-type selector. Do not manually add a multipart boundary. Optional manager
+IDs and dates should be omitted rather than sent as the form text `null`.
+
+Every implemented route has a summary/tag; request schemas include examples and
+Bean Validation constraints. Pagination exposes `page`, `size`, and `sort` query
+parameters, not a nested Pageable object. Responses document `201` for creation,
+`204` for deletion, DTO content, and uniform `application/problem+json` errors.
+JSON/form handlers for the same URL appear as one documented operation with all
+three supported request content types. Authentication is intentionally absent;
+actor IDs are not proof of identity. Swagger **Execute** performs real operations
+against the configured database—use development data only.
+
+### HR smoke-test walkthrough in Swagger
+
+1. **Departments → Create:** submit `{"name":"Swagger demo","description":"Temporary demo department"}`.
+   Expect `201`; retain the returned ID. Use a unique name on repeat runs.
+2. **Departments → Get/update/list:** use that ID and edit the description. A second
+   create with the same name should return `409`.
+3. **Employees → Create:** use the example request, replace `departmentId` with the
+   returned ID, choose a unique employee number/email, and omit `managerId`. Expect
+   `201`. Get/update the employee and list with `name`, `departmentId`, pagination
+   and sorting. Duplicate number/email should return `409`.
+4. **Teams → Get direct reports:** the new employee initially returns `[]`. Create
+   another employee with their ID as `managerId` to see a direct report.
+5. **Contracts → Create:** use the new employee ID. `FIXED_TERM` without `endDate`
+   returns `400`; a valid contract returns `201`; an overlapping contract returns
+   `409`. View its history. To test ending, use a contract that has already started
+   and an end date between its start and today UTC; expect `ENDED`.
+6. **Departments → Delete:** an occupied department returns `409`. Deleting a
+   separate empty demo department returns `204`.
+
+Do not rely on a single-contract GET at its Location URL: the implemented read
+route is employee contract history. The automated integration suite separately
+verifies the generated specification, Swagger UI, schemas/media types, all
+application-route descriptions, status codes and the underlying CRUD workflows.
+
+### Existing class diagram
+
+The supplied diagram is already in
+[`documents/diagram de class atlasrc.png`](documents/diagram%20de%20class%20atlasrc.png).
+It has not been recreated or modified by this documentation task.
 
 ## DevTools inside Docker
 
@@ -135,7 +191,7 @@ Development defaults:
 | Username          | `atlasrh`           |
 | Password          | `atlasrh_dev`       |
 | Root password     | `root_dev_only`     |
-| Host address      | jf `127.0.0.1:3307` |
+| Host address      | `127.0.0.1:3307` |
 | Container address | `mariadb:3306`      |
 
 Environment variables supported by the application:
@@ -275,7 +331,7 @@ omitting it on PUT clears the manager. Invalid fields return `400`.
 returns a paginated list using the existing MapStruct employee DTOs (no nested entities).
 
 - `page`: zero-based, defaults to `0`.
-- `size`: `1`–`100`, defaults to `20`.
+- `size`: `1`–`100`, defaults to `10`.
 - `sort`: employee field and optional `asc`/`desc`; defaults to `id,asc`.
   Repeat it for multiple fields, e.g. `sort=lastName,asc&sort=firstName,desc`.
   Allowed fields: `id`, `employeeNumber`, `firstName`, `lastName`, `email`,

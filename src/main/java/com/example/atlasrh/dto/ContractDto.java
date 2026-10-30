@@ -1,5 +1,7 @@
 package com.example.atlasrh.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -10,6 +12,7 @@ import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
+@Schema(description = "Saved contract record; the employee relationship is represented by employeeId.")
 public record ContractDto(
     @Positive(message = "Contract ID must be positive") Long id,
     @NotNull(message = "Contract type is required") ContractType type,

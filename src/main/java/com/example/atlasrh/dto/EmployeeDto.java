@@ -1,5 +1,7 @@
 package com.example.atlasrh.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.time.LocalDate;
 
 import jakarta.validation.constraints.Email;
@@ -8,6 +10,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
+@Schema(description = "Employee record with department/manager IDs rather than nested entity graphs.")
 public record EmployeeDto(
     @Positive(message = "Employee ID must be positive") Long id,
     @NotBlank(message = "Employee number is required")

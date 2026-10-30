@@ -1,5 +1,7 @@
 package com.example.atlasrh.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.time.LocalDate;
 
 import org.springframework.format.annotation.DateTimeFormat;
@@ -10,6 +12,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
+@Schema(description = "Full employee write record. ID comes from the server/URL. Omit managerId for no manager; do not send the form text 'null'.",
+    example = "{\"employeeNumber\":\"EMP-001\",\"firstName\":\"Sara\",\"lastName\":\"Amrani\",\"email\":\"sara@example.com\",\"position\":\"Developer\",\"hireDate\":\"2026-01-01\",\"departmentId\":1}")
 public record EmployeeRequest(
     @NotBlank(message = "Employee number is required")
     @Size(max = 255, message = "Employee number must not exceed 255 characters") String employeeNumber,

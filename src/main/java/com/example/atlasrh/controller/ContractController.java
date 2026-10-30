@@ -3,6 +3,10 @@ package com.example.atlasrh.controller;
 import java.net.URI;
 import java.util.List;
 
+import io.swagger.v3.oas.annotations.Hidden;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -24,6 +28,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 
 @RestController
+@Tag(name = "Contracts", description = "Employee contract creation, history and ending")
 @RequestMapping("/api/employees/{id}/contracts")
 public class ContractController {
   private final ContractService service;
@@ -33,12 +38,14 @@ public class ContractController {
   }
 
   @GetMapping
+  @Operation(summary = "Get employee contract history", description = "Newest start date first, then ID descending. Status is SCHEDULED, ACTIVE or ENDED. Existing employee with no contracts returns [].")
   public List<ContractHistoryDto> history(
       @PathVariable @Positive(message = "Employee ID must be positive") Long id) {
     return service.history(id);
   }
 
   @PutMapping(value = "/{contractId}/end", consumes = MediaType.APPLICATION_JSON_VALUE)
+  @Operation(summary = "End an active contract", description = "End date must be between start date and today (UTC), without extending the original period. Explicit ending is immediately ENDED. Only active contracts can be ended (409 otherwise).")
   public ContractHistoryDto end(
       @PathVariable @Positive(message = "Employee ID must be positive") Long id,
       @PathVariable @Positive(message = "Contract ID must be positive") Long contractId,
@@ -48,6 +55,7 @@ public class ContractController {
 
   @PutMapping(value = "/{contractId}/end",
       consumes = {MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE})
+  @Hidden
   public ContractHistoryDto endForm(
       @PathVariable @Positive(message = "Employee ID must be positive") Long id,
       @PathVariable @Positive(message = "Contract ID must be positive") Long contractId,
@@ -56,6 +64,7 @@ public class ContractController {
   }
 
   @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+  @Operation(summary = "Create an employee contract", description = "FIXED_TERM and INTERNSHIP require endDate. End must be on/after start (400). Inclusive contract periods cannot overlap for an employee (409). PERMANENT may omit endDate.")
   public ResponseEntity<ContractDto> create(
       @PathVariable @Positive(message = "Employee ID must be positive") Long id,
       @Valid @RequestBody ContractRequest request) {
@@ -64,6 +73,7 @@ public class ContractController {
   }
 
   @PostMapping(consumes = {MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE})
+  @Hidden
   public ResponseEntity<ContractDto> createForm(
       @PathVariable @Positive(message = "Employee ID must be positive") Long id,
       @Valid @ModelAttribute ContractRequest request) {
