@@ -160,8 +160,9 @@ datasource. The master changelog is:
 src/main/resources/db/changelog/db.changelog-master.xml
 ```
 
-The master includes four ordered table migrations and a contract-ending state migration. The resulting tables are `departments`,
-`employees`, `contracts`, and `leave_requests`, including foreign keys and unique
+The master includes four initial table migrations, a contract-ending state migration,
+and the leave-type allowance migration. The resulting tables are `departments`,
+`employees`, `contracts`, `leave_requests`, and `leave_types`, including foreign keys and unique
 constraints on department names, employee numbers, and employee emails.
 Managers and contract end dates are optional. Foreign keys prevent deleting
 records that are still referenced; related HR records are not deleted automatically.
@@ -404,9 +405,67 @@ the acting manager for team checks but is caller-supplied, not proof of identity
 This is not a production authorization boundary. A future authenticated API should
 derive manager identity from the session/token.
 
-Leave creation is reserved for ATLAS-19, so this story does not expose a leave POST
-endpoint. The integration tests seed requests through the JDBC repository and cover
-team filtering, decisions, invalid transitions, and concurrent approve/reject calls.
+Leave requests can be created through the ATLAS-19 endpoint below. Approval rechecks
+the yearly balance under an employee lock: separate pending requests can each fit
+the balance when submitted, but cannot both be approved if their combined days
+exceed it. An insufficient balance at approval returns `400` and leaves the request
+PENDING. Integration tests cover filtering, decisions and concurrent calls.
+
+## Leave creation (ATLAS-19)
+
+`POST /api/employees/{employeeId}/leave-requests` accepts JSON, multipart form-data,
+or URL-encoded forms. Example JSON:
+
+```json
+{
+  "leaveType": "ANNUAL",
+  "startDate": "2026-11-06",
+  "endDate": "2026-11-09",
+  "reason": "Family holiday"
+}
+```
+
+Use those same four text fields in Postman form-data; dates use `YYYY-MM-DD`.
+The employee comes from the URL. ID, status, comment and working days are
+server-controlled. The response is `201` with a Location header and a DTO:
+
+```json
+{
+  "id": 3,
+  "employeeId": 1,
+  "leaveType": "ANNUAL",
+  "startDate": "2026-11-06",
+  "endDate": "2026-11-09",
+  "reason": "Family holiday",
+  "status": "PENDING",
+  "comment": null,
+  "workingDays": 2
+}
+```
+
+Allowances confirmed for this project are **22 ANNUAL days** and **5 EXCEPTIONAL
+days per calendar year**. Migration 006 seeds these in the `leave_types` entity
+table; requests retain the `ANNUAL`/`EXCEPTIONAL` API codes backed by a foreign key.
+These are project policy values, not statutory entitlements.
+
+- Working days are Monday–Friday, inclusive. Weekends are excluded; public holidays
+  are not separately excluded. Weekend-only requests return `400`.
+- End date before start, blank reason, invalid type/date, overlapping dates, or
+  exceeding the remaining balance return `400`. Missing employees return `404`.
+- Following the brief's unqualified no-overlap rule, overlap is checked against
+  **all existing requests**, including rejected/cancelled requests, across leave
+  types. Date boundaries are inclusive. Other employees' requests do not conflict.
+- Remaining balance = the type's yearly allowance minus approved working days
+  within that calendar year. Pending/rejected/cancelled requests do not consume it.
+- Cross-year requests split both requested and approved days at January 1; each
+  year's portion must fit that year's allowance. No carry-over or prorating is applied.
+- Employee locking prevents concurrent overlapping submissions, and approval
+  revalidation prevents concurrent decisions from overspending an allowance.
+
+The brief does not require authentication. Employee IDs in routes are development
+identifiers, not proof of caller identity. Listing/cancellation and the balance
+display endpoint remain in ATLAS-20 and ATLAS-21 respectively. Location identifies
+the created request; a single-request GET is not yet exposed.
 
 ## Layered architecture
 
@@ -418,10 +477,10 @@ All application packages are under `com.example.atlasrh`:
 | `service` | Public service interfaces; exposes DTOs, not persistence entities |
 | `service.impl` | Spring-managed implementations; transaction boundaries, repository access, and DTO conversion |
 | `repository` | Spring Data JDBC `ListCrudRepository` interfaces for persistence |
-| `entity` | The four JDBC-mapped entities: Department, Employee, Contract, and LeaveRequest |
+| `entity` | Five JDBC-mapped entities: Department, Employee, Contract, LeaveType, and LeaveRequest |
 | `dto` | Immutable Java records exchanged across the service boundary |
 | `mapper` | MapStruct entity ↔ DTO mappings and shared configuration |
-| `enums` | Contract types, leave types, and request statuses |
+| `enums` | Contract types/statuses, stable leave-type API codes, and request statuses |
 
 Dependencies flow from controller → service interface → service implementation →
 repository. Spring injects implementations, repositories, and generated mappers

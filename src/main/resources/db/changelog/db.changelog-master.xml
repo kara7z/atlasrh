@@ -9,4 +9,5 @@
     <include file="003-create-contracts.xml" relativeToChangelogFile="true"/>
     <include file="004-create-leave-requests.xml" relativeToChangelogFile="true"/>
     <include file="005-contract-ended.xml" relativeToChangelogFile="true"/>
+    <include file="006-leave-types.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>

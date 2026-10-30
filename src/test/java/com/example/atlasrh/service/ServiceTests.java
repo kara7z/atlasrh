@@ -40,6 +40,7 @@ import com.example.atlasrh.service.impl.ContractServiceImpl;
 import com.example.atlasrh.service.impl.DepartmentServiceImpl;
 import com.example.atlasrh.service.impl.EmployeeServiceImpl;
 import com.example.atlasrh.service.impl.LeaveRequestServiceImpl;
+import com.example.atlasrh.service.impl.LeaveBalancePolicy;
 
 @ExtendWith(MockitoExtension.class)
 class ServiceTests {
@@ -51,6 +52,8 @@ class ServiceTests {
   private ContractRepository contractRepository;
   @Mock
   private LeaveRequestRepository leaveRequestRepository;
+  @Mock
+  private LeaveBalancePolicy balancePolicy;
 
   private DepartmentService departmentService;
   private EmployeeService employeeService;
@@ -66,7 +69,7 @@ class ServiceTests {
     contractService = new ContractServiceImpl(contractRepository, Mappers.getMapper(ContractMapper.class),
         employeeRepository);
     leaveRequestService = new LeaveRequestServiceImpl(leaveRequestRepository,
-        Mappers.getMapper(LeaveRequestMapper.class), employeeRepository);
+        Mappers.getMapper(LeaveRequestMapper.class), employeeRepository, balancePolicy);
   }
 
   @Test

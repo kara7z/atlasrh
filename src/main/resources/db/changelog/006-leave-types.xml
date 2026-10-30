@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="006-leave-types" author="kara">
+        <createTable tableName="leave_types">
+            <column name="code" type="VARCHAR(32)">
+                <constraints primaryKey="true" nullable="false" primaryKeyName="pk_leave_types"/>
+            </column>
+            <column name="days_per_year" type="INT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <insert tableName="leave_types">
+            <column name="code" value="ANNUAL"/>
+            <column name="days_per_year" valueNumeric="22"/>
+        </insert>
+        <insert tableName="leave_types">
+            <column name="code" value="EXCEPTIONAL"/>
+            <column name="days_per_year" valueNumeric="5"/>
+        </insert>
+        <addForeignKeyConstraint constraintName="fk_leave_requests_type"
+            baseTableName="leave_requests" baseColumnNames="leave_type"
+            referencedTableName="leave_types" referencedColumnNames="code"
+            onDelete="RESTRICT" onUpdate="RESTRICT"/>
+    </changeSet>
+</databaseChangeLog>

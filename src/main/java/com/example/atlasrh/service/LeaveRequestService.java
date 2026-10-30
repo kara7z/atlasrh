@@ -5,6 +5,8 @@ import java.util.Optional;
 
 import com.example.atlasrh.dto.LeaveRequestDto;
 import com.example.atlasrh.dto.LeaveDecisionRequest;
+import com.example.atlasrh.dto.LeaveCreateRequest;
+import com.example.atlasrh.dto.LeaveCreatedDto;
 
 public interface LeaveRequestService {
   List<LeaveRequestDto> findAll();
@@ -14,4 +16,6 @@ public interface LeaveRequestService {
   List<LeaveRequestDto> pendingForManager(Long managerId);
 
   LeaveRequestDto decide(Long id, LeaveDecisionRequest request);
+
+  LeaveCreatedDto create(Long employeeId, LeaveCreateRequest request);
 }

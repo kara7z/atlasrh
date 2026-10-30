@@ -2,6 +2,9 @@ package com.example.atlasrh.repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDate;
+
+import com.example.atlasrh.enums.LeaveType;
 
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.ListCrudRepository;
@@ -9,6 +12,19 @@ import org.springframework.data.repository.ListCrudRepository;
 import com.example.atlasrh.entity.LeaveRequest;
 
 public interface LeaveRequestRepository extends ListCrudRepository<LeaveRequest, Long> {
+  @Query("""
+      SELECT COUNT(*) > 0 FROM leave_requests
+      WHERE employee_id = :employeeId AND start_date <= :endDate AND end_date >= :startDate
+      """)
+  boolean existsOverlapping(Long employeeId, LocalDate startDate, LocalDate endDate);
+
+  @Query("""
+      SELECT * FROM leave_requests
+      WHERE employee_id = :employeeId AND leave_type = :type AND status = 'APPROVED'
+        AND start_date <= :yearEnd AND end_date >= :yearStart
+      """)
+  List<LeaveRequest> findApprovedForYear(Long employeeId, LeaveType type, LocalDate yearStart, LocalDate yearEnd);
+
   @Query("""
       SELECT lr.* FROM leave_requests lr
       JOIN employees e ON e.id = lr.employee_id

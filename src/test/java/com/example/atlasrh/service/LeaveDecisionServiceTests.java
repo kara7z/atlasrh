@@ -30,6 +30,7 @@ import com.example.atlasrh.mapper.LeaveRequestMapper;
 import com.example.atlasrh.repository.EmployeeRepository;
 import com.example.atlasrh.repository.LeaveRequestRepository;
 import com.example.atlasrh.service.impl.LeaveRequestServiceImpl;
+import com.example.atlasrh.service.impl.LeaveBalancePolicy;
 
 @ExtendWith(MockitoExtension.class)
 class LeaveDecisionServiceTests {
@@ -37,11 +38,14 @@ class LeaveDecisionServiceTests {
   private LeaveRequestRepository repository;
   @Mock
   private EmployeeRepository employeeRepository;
+  @Mock
+  private LeaveBalancePolicy balancePolicy;
   private LeaveRequestService service;
 
   @BeforeEach
   void setUp() {
-    service = new LeaveRequestServiceImpl(repository, Mappers.getMapper(LeaveRequestMapper.class), employeeRepository);
+    service = new LeaveRequestServiceImpl(repository, Mappers.getMapper(LeaveRequestMapper.class), employeeRepository,
+        balancePolicy);
   }
 
   @Test
@@ -68,6 +72,9 @@ class LeaveDecisionServiceTests {
     when(repository.lockById(3L)).thenReturn(Optional.of(leave));
     when(employeeRepository.findById(2L)).thenReturn(Optional.of(Employee.builder().id(2L).managerId(1L).build()));
     when(repository.save(leave)).thenReturn(leave);
+    if (decision == RequestStatus.APPROVED) {
+      when(employeeRepository.lockById(2L)).thenReturn(Optional.of(2L));
+    }
     var result = service.decide(3L, new LeaveDecisionRequest(1L, decision, "  Decision reason  "));
     assertThat(result.status()).isEqualTo(decision);
     assertThat(result.comment()).isEqualTo("Decision reason");
@@ -81,6 +88,7 @@ class LeaveDecisionServiceTests {
     when(repository.lockById(3L)).thenReturn(Optional.of(leave));
     when(employeeRepository.findById(2L)).thenReturn(Optional.of(Employee.builder().id(2L).managerId(1L).build()));
     when(repository.save(leave)).thenReturn(leave);
+    when(employeeRepository.lockById(2L)).thenReturn(Optional.of(2L));
     assertThat(service.decide(3L, new LeaveDecisionRequest(1L, RequestStatus.APPROVED, " ")).comment()).isNull();
   }
 
