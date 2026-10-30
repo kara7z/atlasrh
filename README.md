@@ -379,6 +379,35 @@ employee's manager is reflected in subsequent team requests.
 The repository uses Spring Data JDBC's derived `findByManagerId` query, not JPQL
 or JPA navigation properties.
 
+## Manager leave decisions (ATLAS-18)
+
+- `GET /api/managers/{managerId}/leave-requests/pending`: pending leave requests
+  from direct reports only, ordered by start date then ID (`200`). Indirect reports,
+  unrelated employees, and the manager's own requests are excluded. A missing
+  manager returns `404`; an existing employee without pending team requests gets `[]`.
+- `PUT /api/leave-requests/{id}/decision`: approve or reject a direct report's
+  pending request (`200`). JSON example:
+
+```json
+{"managerId":1,"decision":"REJECTED","comment":"Insufficient team coverage"}
+```
+
+PUT also accepts form-data / URL-encoded text fields `managerId`, `decision`, and
+`comment`. `decision` must be `APPROVED` or `REJECTED`; rejection requires a nonblank
+comment (`400`). Approval comments are optional. Comments are trimmed before saving.
+Already processed or cancelled requests return `409`; simultaneous decisions
+cannot overwrite each other. Missing managers, requests, or requests outside the
+manager's direct team return `404`. Invalid IDs and malformed bodies return `400`.
+
+**Development limitation:** authentication is not implemented. `managerId` identifies
+the acting manager for team checks but is caller-supplied, not proof of identity.
+This is not a production authorization boundary. A future authenticated API should
+derive manager identity from the session/token.
+
+Leave creation is reserved for ATLAS-19, so this story does not expose a leave POST
+endpoint. The integration tests seed requests through the JDBC repository and cover
+team filtering, decisions, invalid transitions, and concurrent approve/reject calls.
+
 ## Layered architecture
 
 All application packages are under `com.example.atlasrh`:
