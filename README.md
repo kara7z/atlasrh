@@ -463,8 +463,8 @@ These are project policy values, not statutory entitlements.
   revalidation prevents concurrent decisions from overspending an allowance.
 
 The brief does not require authentication. Employee IDs in routes are development
-identifiers, not proof of caller identity. The balance display endpoint remains
-in ATLAS-21. Location identifies
+identifiers, not proof of caller identity. The balance display endpoint is described
+under ATLAS-21 below. Location identifies
 the created request; a single-request GET is not yet exposed.
 
 ## Leave tracking and cancellation (ATLAS-20)
@@ -501,6 +501,48 @@ an empty form-data request is also accepted.
 There is no authentication in this brief: the employee ID is a development actor
 identifier. The ownership check prevents cancelling a request with a mismatched
 employee ID, but is not a substitute for authenticated identity.
+
+## Leave balance and seniority (ATLAS-21)
+
+`GET /api/employees/{employeeId}/leave-balance` returns the current UTC calendar
+year's allowance, approved usage, and remaining days for each leave type, plus
+seniority since hire. Optionally select a year:
+
+```text
+GET /api/employees/1/leave-balance?year=2026
+```
+
+Example response (values depend on the employee's actual records):
+
+```json
+{
+  "employeeId": 1,
+  "year": 2026,
+  "asOf": "2026-10-30",
+  "hireDate": "2020-08-15",
+  "seniority": {"years": 6, "months": 2},
+  "balances": [
+    {"leaveType": "ANNUAL", "daysPerYear": 22, "approvedDays": 7, "remainingDays": 15},
+    {"leaveType": "EXCEPTIONAL", "daysPerYear": 5, "approvedDays": 0, "remainingDays": 5}
+  ]
+}
+```
+
+- Balance is calculated, never entered manually: configured yearly allowance minus
+  approved Monday–Friday days within the selected year, inclusive.
+- Cross-year approved requests are clipped to each calendar year. Pending,
+  rejected, and cancelled requests do not consume days; other employees' requests
+  and other leave types do not affect a type's balance.
+- All approved days in the selected year count, including future approved leave.
+  No carry-over or prorating is applied. Allowances come from the current
+  `leave_types` configuration, not historical policy versions.
+- Seniority uses `Period.between(hireDate, today)` in UTC, showing completed years
+  and months and omitting leftover days. It is always as of `asOf`, even when a
+  historical year is selected. Future hire dates yield zero years/months.
+- No requests means the full allowance. Legacy/imported overdraw is shown as a
+  negative remaining balance rather than silently hidden.
+- Missing employee returns `404`; invalid IDs or a year outside 1000–9999 return
+  `400`. This GET endpoint uses query parameters, not a form body.
 
 ## Layered architecture
 
