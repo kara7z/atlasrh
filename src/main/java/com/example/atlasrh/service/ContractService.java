@@ -5,6 +5,8 @@ import java.util.Optional;
 
 import com.example.atlasrh.dto.ContractDto;
 import com.example.atlasrh.dto.ContractRequest;
+import com.example.atlasrh.dto.ContractHistoryDto;
+import com.example.atlasrh.dto.EndContractRequest;
 
 public interface ContractService {
   List<ContractDto> findAll();
@@ -12,4 +14,8 @@ public interface ContractService {
   Optional<ContractDto> findById(Long id);
 
   ContractDto create(Long employeeId, ContractRequest request);
+
+  List<ContractHistoryDto> history(Long employeeId);
+
+  ContractHistoryDto end(Long employeeId, Long contractId, EndContractRequest request);
 }

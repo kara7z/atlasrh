@@ -1,6 +1,7 @@
 package com.example.atlasrh.repository;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.ListCrudRepository;
@@ -8,6 +9,8 @@ import org.springframework.data.repository.ListCrudRepository;
 import com.example.atlasrh.entity.Contract;
 
 public interface ContractRepository extends ListCrudRepository<Contract, Long> {
+  List<Contract> findByEmployeeIdOrderByStartDateDescIdDesc(Long employeeId);
+
   @Query("""
       SELECT COUNT(*) > 0 FROM contracts
       WHERE employee_id = :employeeId

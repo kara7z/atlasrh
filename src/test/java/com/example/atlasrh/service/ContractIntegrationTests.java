@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -18,9 +19,11 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.atlasrh.dto.ContractRequest;
+import com.example.atlasrh.dto.EndContractRequest;
 import com.example.atlasrh.dto.EmployeeRequest;
 import com.example.atlasrh.entity.Department;
 import com.example.atlasrh.enums.ContractType;
+import com.example.atlasrh.enums.ContractStatus;
 import com.example.atlasrh.exception.ConflictException;
 import com.example.atlasrh.exception.ResourceNotFoundException;
 import com.example.atlasrh.repository.DepartmentRepository;
@@ -40,6 +43,84 @@ class ContractIntegrationTests {
   private DepartmentRepository departmentRepository;
   @Autowired
   private ContractRepository contractRepository;
+
+  @Test
+  void endingPersistsStateAndShortensIntervalForReplacement() {
+    var today = LocalDate.now(ZoneOffset.UTC);
+    Long employee = employee(department());
+    var created = service.create(employee, request(today.minusMonths(1).toString(), null));
+    var ended = service.end(employee, created.id(), new EndContractRequest(today));
+    assertThat(ended.status()).isEqualTo(ContractStatus.ENDED);
+    assertThat(ended.endDate()).isEqualTo(today);
+    assertThat(contractRepository.findById(created.id()).orElseThrow().isEnded()).isTrue();
+    assertThat(service.history(employee)).containsExactly(ended);
+    assertThatThrownBy(() -> service.end(employee, created.id(), new EndContractRequest(today)))
+        .isInstanceOf(ConflictException.class);
+    assertThatThrownBy(() -> service.create(employee, request(today.toString(), null)))
+        .isInstanceOf(ConflictException.class);
+    var replacement = service.create(employee, request(today.plusDays(1).toString(), null));
+    var history = service.history(employee);
+    assertThat(history).hasSize(2);
+    assertThat(history.getFirst().id()).isEqualTo(replacement.id());
+    assertThat(history.getFirst().status()).isEqualTo(ContractStatus.SCHEDULED);
+    assertThat(history.getLast()).isEqualTo(ended);
+  }
+
+  @Test
+  void historyIncludesNaturalExpiryAndDistinguishesMissingAndEmptyEmployee() {
+    var today = LocalDate.now(ZoneOffset.UTC);
+    Long employee = employee(department());
+    assertThat(service.history(employee)).isEmpty();
+    service.create(employee, request(today.minusYears(1).toString(), today.minusDays(1).toString()));
+    service.create(employee, request(today.toString(), null));
+    assertThat(service.history(employee)).extracting(item -> item.status())
+        .containsExactly(ContractStatus.ACTIVE, ContractStatus.ENDED);
+    assertThatThrownBy(() -> service.history(Long.MAX_VALUE)).isInstanceOf(ResourceNotFoundException.class);
+  }
+
+  @Test
+  void cannotEndAnotherEmployeesContract() {
+    var today = LocalDate.now(ZoneOffset.UTC);
+    Long department = department();
+    Long employee = employee(department);
+    var created = service.create(employee, request(today.minusDays(1).toString(), null));
+    Long other = employee(department);
+    assertThatThrownBy(() -> service.end(other, created.id(), new EndContractRequest(today)))
+        .isInstanceOf(ResourceNotFoundException.class);
+    assertThat(service.history(employee).getFirst().status()).isEqualTo(ContractStatus.ACTIVE);
+  }
+
+  @Test
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
+  void simultaneousEndRequestsYieldOneSuccessAndOneConflict() throws Exception {
+    Long department = department();
+    Long employee = employee(department);
+    var today = LocalDate.now(ZoneOffset.UTC);
+    var created = service.create(employee, request(today.minusDays(1).toString(), null));
+    try (var executor = java.util.concurrent.Executors.newFixedThreadPool(2)) {
+      CountDownLatch start = new CountDownLatch(1);
+      Callable<String> end = () -> {
+        if (!start.await(10, TimeUnit.SECONDS)) {
+          throw new IllegalStateException("Concurrent test did not start");
+        }
+        try {
+          service.end(employee, created.id(), new EndContractRequest(today));
+          return "ended";
+        } catch (ConflictException exception) {
+          return "conflict";
+        }
+      };
+      var first = executor.submit(end);
+      var second = executor.submit(end);
+      start.countDown();
+      assertThat(List.of(first.get(20, TimeUnit.SECONDS), second.get(20, TimeUnit.SECONDS)))
+          .containsExactlyInAnyOrder("ended", "conflict");
+    } finally {
+      contractRepository.deleteById(created.id());
+      employeeRepository.deleteById(employee);
+      departmentRepository.deleteById(department);
+    }
+  }
 
   @Test
   void createsAndReadsPermanentContract() {

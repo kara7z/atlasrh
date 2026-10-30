@@ -10,6 +10,8 @@ import static org.mockito.Mockito.when;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.List;
+import java.time.ZoneOffset;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,8 +23,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.example.atlasrh.dto.ContractRequest;
+import com.example.atlasrh.dto.EndContractRequest;
 import com.example.atlasrh.entity.Contract;
 import com.example.atlasrh.enums.ContractType;
+import com.example.atlasrh.enums.ContractStatus;
 import com.example.atlasrh.exception.BadRequestException;
 import com.example.atlasrh.exception.ConflictException;
 import com.example.atlasrh.exception.ResourceNotFoundException;
@@ -43,6 +47,101 @@ class ContractServiceTests {
   @BeforeEach
   void setUp() {
     service = new ContractServiceImpl(repository, Mappers.getMapper(ContractMapper.class), employeeRepository);
+  }
+
+  @ParameterizedTest
+  @EnumSource(ContractStatus.class)
+  void historyMapsCurrentStatus(ContractStatus status) {
+    var today = LocalDate.now(ZoneOffset.UTC);
+    var contract = activeContract(today);
+    if (status == ContractStatus.SCHEDULED) {
+      contract.setStartDate(today.plusDays(1));
+    } else if (status == ContractStatus.ENDED) {
+      contract.setEndDate(today.minusDays(1));
+    }
+    when(employeeRepository.existsById(1L)).thenReturn(true);
+    when(repository.findByEmployeeIdOrderByStartDateDescIdDesc(1L)).thenReturn(List.of(contract));
+    var history = service.history(1L);
+    assertThat(history).hasSize(1);
+    assertThat(history.getFirst().status()).isEqualTo(status);
+    assertThat(history.getFirst().employeeId()).isEqualTo(1L);
+  }
+
+  @Test
+  void historyDistinguishesMissingEmployeeAndEmptyHistory() {
+    assertThatThrownBy(() -> service.history(99L)).isInstanceOf(ResourceNotFoundException.class);
+    when(employeeRepository.existsById(1L)).thenReturn(true);
+    when(repository.findByEmployeeIdOrderByStartDateDescIdDesc(1L)).thenReturn(List.of());
+    assertThat(service.history(1L)).isEmpty();
+  }
+
+  @Test
+  void endsAnActiveContractTodayAndPreservesItsFields() {
+    var today = LocalDate.now(ZoneOffset.UTC);
+    var contract = activeContract(today);
+    when(employeeRepository.lockById(1L)).thenReturn(Optional.of(1L));
+    when(repository.findById(2L)).thenReturn(Optional.of(contract));
+    when(repository.save(contract)).thenReturn(contract);
+    var ended = service.end(1L, 2L, new EndContractRequest(today));
+    assertThat(ended.status()).isEqualTo(ContractStatus.ENDED);
+    assertThat(ended.endDate()).isEqualTo(today);
+    assertThat(ended.id()).isEqualTo(2L);
+    assertThat(ended.type()).isEqualTo(ContractType.PERMANENT);
+    assertThat(contract.isEnded()).isTrue();
+  }
+
+  @Test
+  void rejectsEndingMissingOrWrongEmployeeContracts() {
+    var today = LocalDate.now(ZoneOffset.UTC);
+    assertThatThrownBy(() -> service.end(99L, 2L, new EndContractRequest(today)))
+        .isInstanceOf(ResourceNotFoundException.class);
+    when(employeeRepository.lockById(1L)).thenReturn(Optional.of(1L));
+    assertThatThrownBy(() -> service.end(1L, 2L, new EndContractRequest(today)))
+        .isInstanceOf(ResourceNotFoundException.class);
+    var contract = activeContract(today);
+    contract.setEmployeeId(3L);
+    when(repository.findById(2L)).thenReturn(Optional.of(contract));
+    assertThatThrownBy(() -> service.end(1L, 2L, new EndContractRequest(today)))
+        .isInstanceOf(ResourceNotFoundException.class);
+    verify(repository, never()).save(any());
+  }
+
+  @Test
+  void rejectsRepeatedEndingExpiredAndScheduledContracts() {
+    var today = LocalDate.now(ZoneOffset.UTC);
+    var contract = activeContract(today);
+    when(employeeRepository.lockById(1L)).thenReturn(Optional.of(1L));
+    when(repository.findById(2L)).thenReturn(Optional.of(contract));
+    contract.setEnded(true);
+    assertThatThrownBy(() -> service.end(1L, 2L, new EndContractRequest(today)))
+        .isInstanceOf(ConflictException.class);
+    contract.setEnded(false);
+    contract.setEndDate(today.minusDays(1));
+    assertThatThrownBy(() -> service.end(1L, 2L, new EndContractRequest(today)))
+        .isInstanceOf(ConflictException.class);
+    contract.setEndDate(null);
+    contract.setStartDate(today.plusDays(1));
+    assertThatThrownBy(() -> service.end(1L, 2L, new EndContractRequest(today)))
+        .isInstanceOf(ConflictException.class);
+    verify(repository, never()).save(any());
+  }
+
+  @Test
+  void rejectsEndDatesBeforeStartOrInTheFuture() {
+    var today = LocalDate.now(ZoneOffset.UTC);
+    var contract = activeContract(today);
+    when(employeeRepository.lockById(1L)).thenReturn(Optional.of(1L));
+    when(repository.findById(2L)).thenReturn(Optional.of(contract));
+    assertThatThrownBy(() -> service.end(1L, 2L, new EndContractRequest(contract.getStartDate().minusDays(1))))
+        .isInstanceOf(BadRequestException.class);
+    assertThatThrownBy(() -> service.end(1L, 2L, new EndContractRequest(today.plusDays(1))))
+        .isInstanceOf(BadRequestException.class);
+    verify(repository, never()).save(any());
+  }
+
+  private Contract activeContract(LocalDate today) {
+    return Contract.builder().id(2L).employeeId(1L).type(ContractType.PERMANENT)
+        .startDate(today.minusMonths(1)).grossSalary(new BigDecimal("12000.00")).build();
   }
 
   @ParameterizedTest

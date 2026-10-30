@@ -31,6 +31,7 @@ public class Contract {
   private LocalDate startDate;
   private LocalDate endDate;
   private BigDecimal grossSalary;
+  private boolean ended;
 
   @Column("employee_id")
   private Long employeeId;

@@ -160,7 +160,7 @@ datasource. The master changelog is:
 src/main/resources/db/changelog/db.changelog-master.xml
 ```
 
-The master includes four ordered table migrations. The resulting tables are `departments`,
+The master includes four ordered table migrations and a contract-ending state migration. The resulting tables are `departments`,
 `employees`, `contracts`, and `leave_requests`, including foreign keys and unique
 constraints on department names, employee numbers, and employee emails.
 Managers and contract end dates are optional. Foreign keys prevent deleting
@@ -328,8 +328,41 @@ omit `endDate` for an open-ended contract; do not send the text `null`.
 - Employee-row locking serializes creation for the same employee so simultaneous
   requests cannot bypass the overlap check. All creation paths use the same transaction.
 
-Ending contracts and history endpoints are reserved for ATLAS-17. The Location
-identifies the created record; a single-contract GET endpoint is not yet exposed.
+The Location identifies the created record; a single-contract GET endpoint is not
+yet exposed. View the employee's full contract history with the route below.
+
+## Contract ending and history (ATLAS-17)
+
+- `GET /api/employees/{id}/contracts`: returns `200` with all contracts, newest
+  start date first (ID descending breaks ties). Existing employees without contracts
+  return `[]`; missing employees return `404`.
+- `PUT /api/employees/{id}/contracts/{contractId}/end`: ends an active contract and
+  returns `200` with the updated record, including `status: "ENDED"`.
+
+For PUT, send JSON:
+
+```json
+{"endDate":"2026-10-30"}
+```
+
+Or use form-data / URL-encoded form with the text field `endDate` in `YYYY-MM-DD`.
+The end date must be between the contract's start date and today (UTC); it cannot
+extend the original end date. Invalid dates return `400`. Missing employees,
+contracts, or contracts belonging to another employee return `404`. Ending an
+already-ended, naturally expired, or not-yet-started contract returns `409`.
+Repeated or concurrent ending requests cannot silently overwrite the first decision.
+
+History and end responses expose contract fields plus a status:
+
+- `SCHEDULED`: start date is in the future.
+- `ACTIVE`: started, not explicitly ended, and not past its inclusive end date.
+- `ENDED`: explicitly ended or its end date is before today.
+
+An explicit ending is persisted in the new `contracts.ended` column so ending
+today immediately returns `ENDED`. Existing rows default to false; expired records
+are still recognized by their dates. Creation responses keep their existing DTO shape.
+The original inclusive overlap rules still apply: a replacement starts no earlier
+than the day after the previous contract's final end date.
 
 ## Manager team (ATLAS-15)
 

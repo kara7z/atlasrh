@@ -8,4 +8,5 @@
     <include file="002-create-employees.xml" relativeToChangelogFile="true"/>
     <include file="003-create-contracts.xml" relativeToChangelogFile="true"/>
     <include file="004-create-leave-requests.xml" relativeToChangelogFile="true"/>
+    <include file="005-contract-ended.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>
