@@ -63,7 +63,8 @@ class ServiceTests {
         employeeRepository);
     employeeService = new EmployeeServiceImpl(employeeRepository, Mappers.getMapper(EmployeeMapper.class),
         departmentRepository);
-    contractService = new ContractServiceImpl(contractRepository, Mappers.getMapper(ContractMapper.class));
+    contractService = new ContractServiceImpl(contractRepository, Mappers.getMapper(ContractMapper.class),
+        employeeRepository);
     leaveRequestService = new LeaveRequestServiceImpl(leaveRequestRepository,
         Mappers.getMapper(LeaveRequestMapper.class));
   }

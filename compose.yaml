@@ -6,15 +6,8 @@ services:
     working_dir: /workspace
     entrypoint: ["./mvnw", "-B", "-ntp", "spring-boot:run"]
     command: []
-    develop:
-      watch:
-        - action: sync+restart
-          path: ./src
-          target: /workspace/src
-        - action: rebuild
-          path: ./pom.xml
-        - action: rebuild
-          path: ./Dockerfile
+    volumes:
+      - ./src:/workspace/src:ro
     ports:
       - "127.0.0.1:8081:8080"
     environment:

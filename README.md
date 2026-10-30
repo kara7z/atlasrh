@@ -26,7 +26,21 @@ if it is already running, to avoid a port conflict.
 
 The application listens on `http://localhost:8080`. The `/` endpoint returns placeholder text.
 Department CRUD is available at `/api/departments`.
+Department POST and PUT accept JSON, multipart form-data, or URL-encoded forms.
+In Postman, choose **Body → form-data** and add text fields `name` (required) and
+`description` (optional). Let Postman generate the Content-Type and multipart boundary.
+For example: `curl -F 'name=Engineering' -F 'description=Development team' http://localhost:8080/api/departments`.
 Employee create/update/view endpoints are available at `/api/employees`.
+All current POST routes (`/api/departments` and `/api/employees`) support JSON,
+multipart form-data, and URL-encoded forms. For employee form-data, use text fields
+`employeeNumber`, `firstName`, `lastName`, `email`, `position`, `hireDate`
+(`YYYY-MM-DD`), and `departmentId`. `managerId` is optional; omit it for no manager.
+Contract creation (`POST /api/employees/{id}/contracts`) also supports JSON,
+multipart form-data, and URL-encoded forms (see the contract section below).
+Employee PUT also accepts multipart form-data and URL-encoded forms using the same
+fields as POST. Send every required field on PUT; omit `managerId` to clear it
+(do not send the literal text `null`). GET uses query parameters and DELETE uses
+the resource ID in the URL; neither requires a form body.
 
 ## Build locally
 
@@ -85,6 +99,10 @@ After changing Java code or application resources, compile inside the running co
 ```bash
 docker compose exec app ./mvnw compile
 ```
+
+No Compose watch process is needed: `./src` is bind-mounted directly into
+`/workspace/src`. If switching from the previous watch-based setup, apply the
+mount once with `docker compose up -d --force-recreate app`.
 
 DevTools detects changes in the compiled classpath and restarts Spring Boot.
 It does **not** compile source files automatically. No image rebuild is needed for
@@ -277,6 +295,41 @@ The response has a stable JSON shape:
 empty content but retain the matching total. Invalid page/size/filter values or
 unsupported sort fields return `400`. Filtering, sorting, counting, and pagination
 run in the database through Spring Data JDBC, rather than loading all employees.
+
+## Contract creation (ATLAS-16)
+
+`POST /api/employees/{id}/contracts` creates a contract for an existing employee
+and returns `201` with the saved contract DTO and a `Location` header.
+
+JSON example (replace `1` in the URL with an existing employee ID):
+
+```json
+{
+  "type": "FIXED_TERM",
+  "startDate": "2026-11-01",
+  "endDate": "2027-10-31",
+  "grossSalary": 12000.00
+}
+```
+
+In Postman, you can instead use **Body → form-data**, with text fields `type`,
+`startDate`, `endDate`, and `grossSalary`. Types are `PERMANENT`, `FIXED_TERM`,
+or `INTERNSHIP` (uppercase). Dates use `YYYY-MM-DD`. For a permanent contract,
+omit `endDate` for an open-ended contract; do not send the text `null`.
+
+- Fixed-term and internship contracts require an end date (`400`).
+- End date must be on or after start date (`400`). Same-day contracts are allowed.
+- Salary is required, nonnegative, and has at most two decimal places (`400`).
+- A missing employee returns `404`.
+- Date intervals are inclusive: contracts for one employee must not overlap (`409`).
+  This enforces one active contract at any date, including scheduled contracts.
+  An open-ended contract blocks later overlapping contracts. A replacement can
+  start the day after the previous contract ends.
+- Employee-row locking serializes creation for the same employee so simultaneous
+  requests cannot bypass the overlap check. All creation paths use the same transaction.
+
+Ending contracts and history endpoints are reserved for ATLAS-17. The Location
+identifies the created record; a single-contract GET endpoint is not yet exposed.
 
 ## Manager team (ATLAS-15)
 

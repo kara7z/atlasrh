@@ -2,6 +2,8 @@ package com.example.atlasrh.dto;
 
 import java.time.LocalDate;
 
+import org.springframework.format.annotation.DateTimeFormat;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -20,7 +22,8 @@ public record EmployeeRequest(
     @Size(max = 255, message = "Email must not exceed 255 characters") String email,
     @NotBlank(message = "Position is required")
     @Size(max = 255, message = "Position must not exceed 255 characters") String position,
-    @NotNull(message = "Hire date is required") LocalDate hireDate,
+    @NotNull(message = "Hire date is required")
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hireDate,
     @NotNull(message = "Department ID is required")
     @Positive(message = "Department ID must be positive") Long departmentId,
     @Positive(message = "Manager ID must be positive") Long managerId) {

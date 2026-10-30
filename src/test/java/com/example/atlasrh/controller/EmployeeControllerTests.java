@@ -2,9 +2,11 @@ package com.example.atlasrh.controller;
 
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -49,13 +51,136 @@ class EmployeeControllerTests {
       """;
 
   @Test
+  void createsEmployeeFromMultipartFormData() throws Exception {
+    when(service.create(request)).thenReturn(employee);
+    mvc.perform(employeeForm())
+        .andExpect(status().isCreated()).andExpect(header().string("Location", "/api/employees/2"))
+        .andExpect(jsonPath("$.id").value(2));
+    verify(service).create(request);
+  }
+
+  @Test
+  void acceptsMultipartManagerId() throws Exception {
+    var managedRequest = new EmployeeRequest(request.employeeNumber(), request.firstName(), request.lastName(),
+        request.email(), request.position(), request.hireDate(), request.departmentId(), 3L);
+    when(service.create(managedRequest)).thenReturn(employee);
+    mvc.perform(employeeForm().param("managerId", "3")).andExpect(status().isCreated());
+    verify(service).create(managedRequest);
+  }
+
+  @Test
+  void createsEmployeeFromUrlencodedForm() throws Exception {
+    when(service.create(request)).thenReturn(employee);
+    mvc.perform(post("/api/employees").contentType(MediaType.APPLICATION_FORM_URLENCODED)
+        .param("employeeNumber", "EMP-1").param("firstName", "Sara").param("lastName", "Amrani")
+        .param("email", "sara@example.com").param("position", "Developer")
+        .param("hireDate", "2026-01-01").param("departmentId", "1"))
+        .andExpect(status().isCreated());
+    verify(service).create(request);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"email=invalid", "hireDate=not-a-date", "departmentId=invalid",
+      "departmentId=0", "managerId=-1", "employeeNumber=", "hireDate="})
+  void rejectsInvalidEmployeeFormFields(String field) throws Exception {
+    String[] parts = field.split("=", -1);
+    var form = employeeForm();
+    form.with(request -> {
+      request.setParameter(parts[0], parts[1]);
+      return request;
+    });
+    mvc.perform(form).andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors[0].field").value(parts[0]));
+    verifyNoInteractions(service);
+  }
+
+  @Test
+  void rejectsMissingFormFields() throws Exception {
+    mvc.perform(multipart("/api/employees")).andExpect(status().isBadRequest());
+    verifyNoInteractions(service);
+  }
+
+  @Test
+  void formBusinessErrorsKeepTheirStatusCodes() throws Exception {
+    when(service.create(request)).thenThrow(new ConflictException("Duplicate employee"),
+        new ResourceNotFoundException("Department not found"));
+    mvc.perform(employeeForm()).andExpect(status().isConflict());
+    mvc.perform(employeeForm()).andExpect(status().isNotFound());
+  }
+
+  private org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder employeeForm() {
+    return employeeForm(org.springframework.http.HttpMethod.POST, "/api/employees");
+  }
+
+  private org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder employeeForm(
+      org.springframework.http.HttpMethod method, String url) {
+    return multipart(method, url).param("employeeNumber", "EMP-1")
+        .param("firstName", "Sara").param("lastName", "Amrani").param("email", "sara@example.com")
+        .param("position", "Developer").param("hireDate", "2026-01-01").param("departmentId", "1");
+  }
+
+  @Test
+  void updatesEmployeeFromMultipartFormData() throws Exception {
+    when(service.update(2L, request)).thenReturn(employee);
+    mvc.perform(employeeForm(org.springframework.http.HttpMethod.PUT, "/api/employees/2"))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(2));
+    verify(service).update(2L, request);
+  }
+
+  @Test
+  void updatesEmployeeFromUrlencodedForm() throws Exception {
+    when(service.update(2L, request)).thenReturn(employee);
+    mvc.perform(put("/api/employees/2").contentType(MediaType.APPLICATION_FORM_URLENCODED)
+        .param("employeeNumber", "EMP-1").param("firstName", "Sara").param("lastName", "Amrani")
+        .param("email", "sara@example.com").param("position", "Developer")
+        .param("hireDate", "2026-01-01").param("departmentId", "1"))
+        .andExpect(status().isOk());
+    verify(service).update(2L, request);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"email=invalid", "hireDate=not-a-date", "departmentId=invalid", "managerId=-1"})
+  void validatesEmployeeUpdateForm(String field) throws Exception {
+    String[] parts = field.split("=", -1);
+    var form = employeeForm(org.springframework.http.HttpMethod.PUT, "/api/employees/2");
+    form.with(request -> {
+      request.setParameter(parts[0], parts[1]);
+      return request;
+    });
+    mvc.perform(form).andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors[0].field").value(parts[0]));
+    verifyNoInteractions(service);
+  }
+
+  @Test
+  void validatesUpdateFormPathAndRequiredFields() throws Exception {
+    mvc.perform(employeeForm(org.springframework.http.HttpMethod.PUT, "/api/employees/0"))
+        .andExpect(status().isBadRequest());
+    mvc.perform(multipart(org.springframework.http.HttpMethod.PUT, "/api/employees/2"))
+        .andExpect(status().isBadRequest());
+    verifyNoInteractions(service);
+  }
+
+  @Test
+  void updateFormPreservesBusinessErrorStatuses() throws Exception {
+    when(service.update(2L, request)).thenThrow(new ResourceNotFoundException("Employee not found"),
+        new ConflictException("Duplicate employee"), new BadRequestException("Cannot manage self"));
+    mvc.perform(employeeForm(org.springframework.http.HttpMethod.PUT, "/api/employees/2"))
+        .andExpect(status().isNotFound());
+    mvc.perform(employeeForm(org.springframework.http.HttpMethod.PUT, "/api/employees/2"))
+        .andExpect(status().isConflict());
+    mvc.perform(employeeForm(org.springframework.http.HttpMethod.PUT, "/api/employees/2"))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
   void listsEmployeesWithDefaultPagination() throws Exception {
-    var pageable = PageRequest.of(0, 20, Sort.by("id"));
+    var pageable = PageRequest.of(0, 10, Sort.by("id"));
     when(service.search(null, null, pageable)).thenReturn(new PageImpl<>(List.of(employee), pageable, 1));
     mvc.perform(get("/api/employees")).andExpect(status().isOk())
         .andExpect(jsonPath("$.content[0].id").value(2))
         .andExpect(jsonPath("$.content[0].team").doesNotExist())
-        .andExpect(jsonPath("$.number").value(0)).andExpect(jsonPath("$.size").value(20))
+        .andExpect(jsonPath("$.number").value(0)).andExpect(jsonPath("$.size").value(10))
         .andExpect(jsonPath("$.totalElements").value(1)).andExpect(jsonPath("$.totalPages").value(1))
         .andExpect(jsonPath("$.first").value(true)).andExpect(jsonPath("$.last").value(true));
   }
@@ -73,7 +198,7 @@ class EmployeeControllerTests {
 
   @Test
   void returnsEmptyPage() throws Exception {
-    var pageable = PageRequest.of(0, 20, Sort.by("id"));
+    var pageable = PageRequest.of(0, 10, Sort.by("id"));
     when(service.search(null, null, pageable)).thenReturn(new PageImpl<>(List.of(), pageable, 0));
     mvc.perform(get("/api/employees")).andExpect(status().isOk())
         .andExpect(jsonPath("$.content").isEmpty()).andExpect(jsonPath("$.totalElements").value(0));
@@ -90,7 +215,7 @@ class EmployeeControllerTests {
 
   @Test
   void unsupportedSortingReturns400() throws Exception {
-    var pageable = PageRequest.of(0, 20, Sort.by("unknown"));
+    var pageable = PageRequest.of(0, 10, Sort.by("unknown"));
     when(service.search(null, null, pageable)).thenThrow(new BadRequestException("Unsupported employee sort field"));
     mvc.perform(get("/api/employees").param("sort", "unknown,asc"))
         .andExpect(status().isBadRequest()).andExpect(jsonPath("$.status").value(400));

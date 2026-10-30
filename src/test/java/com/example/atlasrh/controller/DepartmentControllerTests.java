@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -45,6 +46,67 @@ class DepartmentControllerTests {
   private final String json = """
       {"name":"Engineering","description":"Product development"}
       """;
+
+  @Test
+  void createsDepartmentFromMultipartFormData() throws Exception {
+    when(service.create(request)).thenReturn(department);
+    mvc.perform(multipart("/api/departments").param("name", "Engineering")
+        .param("description", "Product development"))
+        .andExpect(status().isCreated())
+        .andExpect(header().string("Location", "/api/departments/1"))
+        .andExpect(jsonPath("$.name").value("Engineering"));
+    verify(service).create(request);
+  }
+
+  @Test
+  void updatesDepartmentFromMultipartFormData() throws Exception {
+    when(service.update(1L, request)).thenReturn(department);
+    mvc.perform(multipart(org.springframework.http.HttpMethod.PUT, "/api/departments/1")
+        .param("name", "Engineering").param("description", "Product development"))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(1));
+    verify(service).update(1L, request);
+  }
+
+  @Test
+  void acceptsUrlencodedFormOnCreateAndUpdate() throws Exception {
+    when(service.create(request)).thenReturn(department);
+    when(service.update(1L, request)).thenReturn(department);
+    mvc.perform(post("/api/departments").contentType(MediaType.APPLICATION_FORM_URLENCODED)
+        .param("name", "Engineering").param("description", "Product development"))
+        .andExpect(status().isCreated());
+    mvc.perform(put("/api/departments/1").contentType(MediaType.APPLICATION_FORM_URLENCODED)
+        .param("name", "Engineering").param("description", "Product development"))
+        .andExpect(status().isOk());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"", "   "})
+  void validatesMultipartFormOnCreateAndUpdate(String name) throws Exception {
+    mvc.perform(multipart("/api/departments").param("name", name))
+        .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors[0].field").value("name"));
+    mvc.perform(multipart(org.springframework.http.HttpMethod.PUT, "/api/departments/1").param("name", name))
+        .andExpect(status().isBadRequest());
+    verifyNoInteractions(service);
+  }
+
+  @Test
+  void validatesMissingAndOversizedMultipartName() throws Exception {
+    mvc.perform(multipart("/api/departments"))
+        .andExpect(status().isBadRequest());
+    mvc.perform(multipart("/api/departments").param("name", "a".repeat(256)))
+        .andExpect(status().isBadRequest());
+    verifyNoInteractions(service);
+  }
+
+  @Test
+  void multipartDescriptionIsOptionalAndPathIdIsValidated() throws Exception {
+    when(service.create(new DepartmentRequest("Engineering", null)))
+        .thenReturn(new DepartmentDto(1L, "Engineering", null));
+    mvc.perform(multipart("/api/departments").param("name", "Engineering"))
+        .andExpect(status().isCreated());
+    mvc.perform(multipart(org.springframework.http.HttpMethod.PUT, "/api/departments/0")
+        .param("name", "Engineering")).andExpect(status().isBadRequest());
+  }
 
   @Test
   void listsDepartments() throws Exception {

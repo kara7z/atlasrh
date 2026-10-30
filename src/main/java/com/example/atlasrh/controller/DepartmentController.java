@@ -4,9 +4,11 @@ import java.net.URI;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -40,15 +42,27 @@ public class DepartmentController {
     return service.findById(id).orElseThrow(() -> new DepartmentNotFoundException(id));
   }
 
-  @PostMapping
+  @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<DepartmentDto> create(@Valid @RequestBody DepartmentRequest request) {
     DepartmentDto department = service.create(request);
     return ResponseEntity.created(URI.create("/api/departments/" + department.id())).body(department);
   }
 
-  @PutMapping("/{id}")
+  @PostMapping(consumes = {MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE})
+  public ResponseEntity<DepartmentDto> createForm(@Valid @ModelAttribute DepartmentRequest request) {
+    return create(request);
+  }
+
+  @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
   public DepartmentDto update(@PathVariable @Positive(message = "Department ID must be positive") Long id,
       @Valid @RequestBody DepartmentRequest request) {
+    return service.update(id, request);
+  }
+
+  @PutMapping(value = "/{id}",
+      consumes = {MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE})
+  public DepartmentDto updateForm(@PathVariable @Positive(message = "Department ID must be positive") Long id,
+      @Valid @ModelAttribute DepartmentRequest request) {
     return service.update(id, request);
   }
 
