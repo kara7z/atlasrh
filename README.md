@@ -463,9 +463,44 @@ These are project policy values, not statutory entitlements.
   revalidation prevents concurrent decisions from overspending an allowance.
 
 The brief does not require authentication. Employee IDs in routes are development
-identifiers, not proof of caller identity. Listing/cancellation and the balance
-display endpoint remain in ATLAS-20 and ATLAS-21 respectively. Location identifies
+identifiers, not proof of caller identity. The balance display endpoint remains
+in ATLAS-21. Location identifies
 the created request; a single-request GET is not yet exposed.
+
+## Leave tracking and cancellation (ATLAS-20)
+
+`GET /api/employees/{employeeId}/leave-requests` lists only that employee's requests.
+Add `status=PENDING`, `APPROVED`, `REJECTED`, or `CANCELLED` to filter. For example:
+
+```text
+GET /api/employees/1/leave-requests?status=PENDING&page=0&size=10
+```
+
+Results use the same `content`, `number`, `size`, `totalElements`, `totalPages`,
+`first`, and `last` pagination envelope as the employee list. Each content item is
+a MapStruct leave-request DTO, not an entity. Defaults are page `0`, size `10`,
+start date descending then ID descending. Size must be 1–100. Optional `sort`
+supports `id`, `leaveType`, `startDate`, `endDate`, or `status`, with an ID tie-breaker
+added when needed. Unknown status/sort fields and invalid pagination return `400`.
+Missing employees return `404`; existing employees without matches get empty
+content. Out-of-range pages preserve the matching total.
+
+`PUT /api/employees/{employeeId}/leave-requests/{id}/cancel` cancels an employee's
+own PENDING request, returning `200` and the saved DTO with `status: "CANCELLED"`.
+The route IDs provide all required data, so no JSON or form fields are needed;
+an empty form-data request is also accepted.
+
+- Missing employees/requests and another employee's request return `404`.
+- APPROVED, REJECTED, and already CANCELLED requests return `409`.
+- Request dates, reason, type and comment are preserved; only status changes.
+- Cancelled requests disappear from the manager's pending list. They do not consume
+  balance. The existing no-overlap rule still includes cancelled request dates.
+- Row locking serializes cancellation with manager approval/rejection and repeated
+  cancellation: only one concurrent transition succeeds.
+
+There is no authentication in this brief: the employee ID is a development actor
+identifier. The ownership check prevents cancelling a request with a mismatched
+employee ID, but is not a substitute for authenticated identity.
 
 ## Layered architecture
 

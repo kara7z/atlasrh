@@ -5,13 +5,20 @@ import java.util.Optional;
 import java.time.LocalDate;
 
 import com.example.atlasrh.enums.LeaveType;
+import com.example.atlasrh.enums.RequestStatus;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.ListCrudRepository;
 
 import com.example.atlasrh.entity.LeaveRequest;
 
 public interface LeaveRequestRepository extends ListCrudRepository<LeaveRequest, Long> {
+  Page<LeaveRequest> findByEmployeeId(Long employeeId, Pageable pageable);
+
+  Page<LeaveRequest> findByEmployeeIdAndStatus(Long employeeId, RequestStatus status, Pageable pageable);
+
   @Query("""
       SELECT COUNT(*) > 0 FROM leave_requests
       WHERE employee_id = :employeeId AND start_date <= :endDate AND end_date >= :startDate

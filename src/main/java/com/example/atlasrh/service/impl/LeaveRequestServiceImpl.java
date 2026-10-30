@@ -2,7 +2,12 @@ package com.example.atlasrh.service.impl;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Isolation;
@@ -24,6 +29,7 @@ import com.example.atlasrh.util.WorkingDays;
 @Service
 @Transactional(readOnly = true)
 public class LeaveRequestServiceImpl implements LeaveRequestService {
+  private static final Set<String> SORT_FIELDS = Set.of("id", "leaveType", "startDate", "endDate", "status");
   private final LeaveRequestRepository repository;
   private final LeaveRequestMapper mapper;
   private final EmployeeRepository employeeRepository;
@@ -45,6 +51,48 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
   @Override
   public Optional<LeaveRequestDto> findById(Long id) {
     return repository.findById(id).map(mapper::toDto);
+  }
+
+  @Override
+  public Page<LeaveRequestDto> listForEmployee(Long employeeId, RequestStatus status, Pageable pageable) {
+    if (pageable.isUnpaged() || pageable.getPageSize() > 100) {
+      throw new BadRequestException("Leave request page size must be between 1 and 100");
+    }
+    for (Sort.Order order : pageable.getSort()) {
+      if (!SORT_FIELDS.contains(order.getProperty())) {
+        throw new BadRequestException("Unsupported leave request sort field: " + order.getProperty());
+      }
+    }
+    if (!employeeRepository.existsById(employeeId)) {
+      throw new ResourceNotFoundException("Employee not found: " + employeeId);
+    }
+    Sort sort = pageable.getSort();
+    if (sort.isUnsorted()) {
+      sort = Sort.by(Sort.Direction.DESC, "startDate", "id");
+    } else if (sort.getOrderFor("id") == null) {
+      sort = sort.and(Sort.by("id"));
+    }
+    Pageable stablePage = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
+    Page<com.example.atlasrh.entity.LeaveRequest> result = status == null
+        ? repository.findByEmployeeId(employeeId, stablePage)
+        : repository.findByEmployeeIdAndStatus(employeeId, status, stablePage);
+    return result.map(mapper::toDto);
+  }
+
+  @Override
+  @Transactional(isolation = Isolation.READ_COMMITTED)
+  public LeaveRequestDto cancel(Long employeeId, Long id) {
+    if (!employeeRepository.existsById(employeeId)) {
+      throw new ResourceNotFoundException("Employee not found: " + employeeId);
+    }
+    var leave = repository.lockById(id)
+        .filter(value -> employeeId.equals(value.getEmployeeId()))
+        .orElseThrow(() -> new ResourceNotFoundException("Leave request not found for employee: " + employeeId));
+    if (leave.getStatus() != RequestStatus.PENDING) {
+      throw new ConflictException("Only PENDING leave requests can be cancelled");
+    }
+    leave.setStatus(RequestStatus.CANCELLED);
+    return mapper.toDto(repository.save(leave));
   }
 
   @Override
