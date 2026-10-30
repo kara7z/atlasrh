@@ -19,7 +19,6 @@ public class EmployeeSearchRepositoryImpl implements EmployeeSearchRepository {
   public Page<Employee> search(String name, Long departmentId, Pageable pageable) {
     Criteria criteria = Criteria.empty();
     if (name != null && !name.isBlank()) {
-      // Treat SQL LIKE wildcards as literal characters in user input.
       String pattern = "%" + name.strip().replace("\\", "\\\\").replace("%", "\\%")
           .replace("_", "\\_") + "%";
       criteria = criteria.and(Criteria.where("firstName").like(pattern).ignoreCase(true)

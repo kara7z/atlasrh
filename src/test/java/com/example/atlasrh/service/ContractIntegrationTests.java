@@ -180,7 +180,6 @@ class ContractIntegrationTests {
       assertThat(List.of(first.get(20, TimeUnit.SECONDS), second.get(20, TimeUnit.SECONDS)))
           .containsExactlyInAnyOrder("created", "conflict");
     } finally {
-      // This test deliberately commits to exercise real concurrent transactions.
       contractRepository.findAll().stream().filter(contract -> employee.equals(contract.getEmployeeId()))
           .forEach(contractRepository::delete);
       employeeRepository.deleteById(employee);

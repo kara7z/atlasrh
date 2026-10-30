@@ -59,7 +59,6 @@ public class ContractServiceImpl implements ContractService {
   @Override
   @Transactional
   public ContractHistoryDto end(Long employeeId, Long contractId, EndContractRequest request) {
-    // Same lock as creation: contract changes for an employee cannot race.
     employeeRepository.lockById(employeeId)
         .orElseThrow(() -> new ResourceNotFoundException("Employee not found: " + employeeId));
     var contract = repository.findById(contractId)
@@ -87,7 +86,6 @@ public class ContractServiceImpl implements ContractService {
     if (request.endDate() != null && request.endDate().isBefore(request.startDate())) {
       throw new BadRequestException("End date must not be before start date");
     }
-    // Serialize contract creation per employee, including the first contract.
     employeeRepository.lockById(employeeId)
         .orElseThrow(() -> new ResourceNotFoundException("Employee not found: " + employeeId));
     if (repository.existsOverlapping(employeeId, request.startDate(), request.endDate())) {
