@@ -53,8 +53,8 @@ public class ContractController {
     return service.end(id, contractId, request);
   }
 
-  @PutMapping(value = "/{contractId}/end",
-      consumes = {MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE})
+  @PutMapping(value = "/{contractId}/end", consumes = { MediaType.MULTIPART_FORM_DATA_VALUE,
+      MediaType.APPLICATION_FORM_URLENCODED_VALUE })
   @Hidden
   public ContractHistoryDto endForm(
       @PathVariable @Positive(message = "Employee ID must be positive") Long id,
@@ -72,7 +72,7 @@ public class ContractController {
     return ResponseEntity.created(URI.create("/api/employees/" + id + "/contracts/" + contract.id())).body(contract);
   }
 
-  @PostMapping(consumes = {MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE})
+  @PostMapping(consumes = { MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE })
   @Hidden
   public ResponseEntity<ContractDto> createForm(
       @PathVariable @Positive(message = "Employee ID must be positive") Long id,

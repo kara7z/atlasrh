@@ -45,14 +45,16 @@ public class OpenApiConfiguration {
         }
         operation.getResponses().addApiResponse("400", problem("Invalid fields, parameters, dates or business rule"));
         if (path.contains("{") || path.equals("/api/employees")) {
-          operation.getResponses().addApiResponse("404", problem("Resource missing or outside the specified employee/team"));
+          operation.getResponses().addApiResponse("404",
+              problem("Resource missing or outside the specified employee/team"));
         }
         boolean conflict = (path.startsWith("/api/departments") && method != PathItem.HttpMethod.GET)
             || (path.startsWith("/api/employees") && !path.contains("leave-")
                 && method != PathItem.HttpMethod.GET)
             || path.endsWith("/decision") || path.endsWith("/cancel");
         if (conflict) {
-          operation.getResponses().addApiResponse("409", problem("Duplicate resource, overlapping contract or invalid workflow state"));
+          operation.getResponses().addApiResponse("409",
+              problem("Duplicate resource, overlapping contract or invalid workflow state"));
         }
         var body = operation.getRequestBody();
         if (body != null && body.getContent() != null && body.getContent().containsKey("application/json")) {

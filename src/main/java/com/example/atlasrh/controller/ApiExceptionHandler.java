@@ -61,7 +61,8 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     problem.setProperty("errors", exception.getParameterValidationResults().stream()
         .flatMap(result -> result.getResolvableErrors().stream()
             .map(error -> new ValidationError(error instanceof FieldError fieldError
-                ? fieldError.getField() : result.getMethodParameter().getParameterName(), error.getDefaultMessage())))
+                ? fieldError.getField()
+                : result.getMethodParameter().getParameterName(), error.getDefaultMessage())))
         .toList());
     return handleExceptionInternal(exception, problem, headers, status, request);
   }
