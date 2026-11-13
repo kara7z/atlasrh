@@ -1,0 +1,182 @@
+{
+  "info": {
+    "name": "AtlasRH API - Simple (port 8081)",
+    "description": "No variables or setup scripts. All URLs use http://127.0.0.1:8081. Send requests manually. IDs are EXAMPLES: department 1, manager 1, employee 2, contract 1, leave request 1. Replace them in URLs and JSON bodies with IDs from your actual responses. Run against a development database only: requests change real data. See postman/README.md.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Departments",
+      "item": [
+        {
+          "name": "Create department",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "http://127.0.0.1:8081/api/departments",
+            "description": "Expected: 201. Note the returned id. Department names must be unique.",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Postman Engineering\",\n  \"description\": \"Development team\"\n}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "List departments",
+          "request": { "method": "GET", "header": [], "url": "http://127.0.0.1:8081/api/departments", "description": "Expected: 200." }
+        },
+        {
+          "name": "Get department by ID",
+          "request": { "method": "GET", "header": [], "url": "http://127.0.0.1:8081/api/departments/1", "description": "Expected: 200. Replace 1 with your department ID." }
+        },
+        {
+          "name": "Update department",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "http://127.0.0.1:8081/api/departments/1",
+            "description": "Expected: 200. Replace 1 with your department ID.",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Postman Engineering\",\n  \"description\": \"Updated development team\"\n}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "Delete department (only if empty)",
+          "request": { "method": "DELETE", "header": [], "url": "http://127.0.0.1:8081/api/departments/1", "description": "Expected: 204 if empty, 409 if employees belong to it. Replace 1 with an empty test department ID. Do not delete your department before creating employees." }
+        }
+      ]
+    },
+    {
+      "name": "Employees",
+      "item": [
+        {
+          "name": "Create manager first",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "http://127.0.0.1:8081/api/employees",
+            "description": "Expected: 201. Replace departmentId with your department ID. Note the returned employee id: use it as managerId in the next request. Email and employee number must be unique.",
+            "body": { "mode": "raw", "raw": "{\n  \"employeeNumber\": \"POSTMAN-MGR-001\",\n  \"firstName\": \"Omar\",\n  \"lastName\": \"Postman\",\n  \"email\": \"omar.postman@example.com\",\n  \"position\": \"Engineering Manager\",\n  \"hireDate\": \"2020-01-01\",\n  \"departmentId\": 1\n}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "Create employee",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "http://127.0.0.1:8081/api/employees",
+            "description": "Expected: 201. Replace departmentId and managerId with actual IDs. Note the returned employee id for contract and leave URLs.",
+            "body": { "mode": "raw", "raw": "{\n  \"employeeNumber\": \"POSTMAN-EMP-001\",\n  \"firstName\": \"Sara\",\n  \"lastName\": \"Postman\",\n  \"email\": \"sara.postman@example.com\",\n  \"position\": \"Developer\",\n  \"hireDate\": \"2020-01-01\",\n  \"departmentId\": 1,\n  \"managerId\": 1\n}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "List employees",
+          "request": { "method": "GET", "header": [], "url": "http://127.0.0.1:8081/api/employees?page=0&size=10", "description": "Expected: 200. Returns a paginated response." }
+        },
+        {
+          "name": "Search employees",
+          "request": { "method": "GET", "header": [], "url": "http://127.0.0.1:8081/api/employees?name=Sara&departmentId=1&page=0&size=10&sort=lastName,asc", "description": "Expected: 200. Replace departmentId=1 with your department ID." }
+        },
+        {
+          "name": "Get employee by ID",
+          "request": { "method": "GET", "header": [], "url": "http://127.0.0.1:8081/api/employees/2", "description": "Expected: 200. Replace 2 with your employee ID." }
+        },
+        {
+          "name": "Update employee",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "http://127.0.0.1:8081/api/employees/2",
+            "description": "Expected: 200. Replace employee ID in URL, departmentId and managerId. This is a full update; include all required fields.",
+            "body": { "mode": "raw", "raw": "{\n  \"employeeNumber\": \"POSTMAN-EMP-001\",\n  \"firstName\": \"Sara\",\n  \"lastName\": \"Postman\",\n  \"email\": \"sara.postman@example.com\",\n  \"position\": \"Senior Developer\",\n  \"hireDate\": \"2020-01-01\",\n  \"departmentId\": 1,\n  \"managerId\": 1\n}", "options": { "raw": { "language": "json" } } }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Managers",
+      "item": [
+        {
+          "name": "Get manager team",
+          "request": { "method": "GET", "header": [], "url": "http://127.0.0.1:8081/api/managers/1/team", "description": "Expected: 200. Replace 1 with the manager's employee ID." }
+        },
+        {
+          "name": "Get manager pending leave requests",
+          "request": { "method": "GET", "header": [], "url": "http://127.0.0.1:8081/api/managers/1/leave-requests/pending", "description": "Expected: 200. Replace 1 with the manager's employee ID." }
+        }
+      ]
+    },
+    {
+      "name": "Contracts",
+      "item": [
+        {
+          "name": "Create permanent contract",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "http://127.0.0.1:8081/api/employees/2/contracts",
+            "description": "Expected: 201. Replace 2 with employee ID. Note the returned contract ID. Contracts for the same employee cannot overlap.",
+            "body": { "mode": "raw", "raw": "{\n  \"type\": \"PERMANENT\",\n  \"startDate\": \"2020-01-01\",\n  \"grossSalary\": 12000.00\n}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "Get employee contract history",
+          "request": { "method": "GET", "header": [], "url": "http://127.0.0.1:8081/api/employees/2/contracts", "description": "Expected: 200. Replace 2 with employee ID." }
+        },
+        {
+          "name": "End active contract",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "http://127.0.0.1:8081/api/employees/2/contracts/1/end",
+            "description": "Expected: 200. Replace 2 with employee ID and 1 with contract ID. endDate must be between contract start and today UTC, and must not extend an existing end date. Only ACTIVE contracts can be ended.",
+            "body": { "mode": "raw", "raw": "{\n  \"endDate\": \"2026-11-12\"\n}", "options": { "raw": { "language": "json" } } }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Leave requests",
+      "item": [
+        {
+          "name": "Create leave request",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "http://127.0.0.1:8081/api/employees/2/leave-requests",
+            "description": "Expected: 201 with PENDING status. Replace 2 with employee ID. Note the returned leave ID. Dates must include a weekday, not overlap another request, and fit the leave balance. Change dates for additional requests.",
+            "body": { "mode": "raw", "raw": "{\n  \"leaveType\": \"ANNUAL\",\n  \"startDate\": \"2026-11-23\",\n  \"endDate\": \"2026-11-23\",\n  \"reason\": \"Family holiday\"\n}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "List employee leave requests",
+          "request": { "method": "GET", "header": [], "url": "http://127.0.0.1:8081/api/employees/2/leave-requests?page=0&size=10&sort=startDate,desc", "description": "Expected: 200. Replace 2 with employee ID. Optionally add &status=PENDING." }
+        },
+        {
+          "name": "Approve pending leave",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "http://127.0.0.1:8081/api/leave-requests/1/decision",
+            "description": "Expected: 200. Replace 1 in URL with leave ID and managerId with the employee's direct manager ID. Choose only ONE transition (approve, reject or cancel) per pending leave.",
+            "body": { "mode": "raw", "raw": "{\n  \"managerId\": 1,\n  \"decision\": \"APPROVED\",\n  \"comment\": \"Approved\"\n}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "Reject pending leave (alternative to approve)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "http://127.0.0.1:8081/api/leave-requests/1/decision",
+            "description": "Expected: 200 for a separate PENDING leave. Replace leave ID and managerId. A nonblank comment is required. Rejecting an already approved/rejected/cancelled leave returns 409.",
+            "body": { "mode": "raw", "raw": "{\n  \"managerId\": 1,\n  \"decision\": \"REJECTED\",\n  \"comment\": \"Insufficient team coverage\"\n}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "Cancel pending leave (alternative to decision)",
+          "request": { "method": "PUT", "header": [], "url": "http://127.0.0.1:8081/api/employees/2/leave-requests/1/cancel", "description": "Expected: 200 for a separate PENDING leave. Replace employee ID 2 and leave ID 1. Cancelling an already decided/cancelled leave returns 409." }
+        },
+        {
+          "name": "Get employee leave balance and seniority",
+          "request": { "method": "GET", "header": [], "url": "http://127.0.0.1:8081/api/employees/2/leave-balance", "description": "Expected: 200. Replace 2 with employee ID. Defaults to the current year; optionally add ?year=2026." }
+        }
+      ]
+    }
+  ]
+}
