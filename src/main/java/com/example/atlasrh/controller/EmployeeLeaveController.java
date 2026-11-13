@@ -51,9 +51,9 @@ public class EmployeeLeaveController {
       @PathVariable @Positive(message = "Employee ID must be positive") Long employeeId,
       @RequestParam(required = false) RequestStatus status,
       @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page must not be negative") int page,
-      @RequestParam(defaultValue = "10") @Min(value = 1, message = "Size must be positive")
-      @Max(value = 100, message = "Size must not exceed 100") int size,
-      @ParameterObject @PageableDefault(sort = {"startDate", "id"}, direction = Sort.Direction.DESC) Pageable pageable) {
+      @RequestParam(defaultValue = "10") @Min(value = 1, message = "Size must be positive") @Max(value = 100, message = "Size must not exceed 100") int size,
+      @ParameterObject @PageableDefault(sort = { "startDate",
+          "id" }, direction = Sort.Direction.DESC) Pageable pageable) {
     return PageResponse.from(service.listForEmployee(employeeId, status,
         PageRequest.of(page, size, pageable.getSort())));
   }
@@ -71,11 +71,11 @@ public class EmployeeLeaveController {
   public ResponseEntity<LeaveCreatedDto> create(
       @PathVariable @Positive(message = "Employee ID must be positive") Long employeeId,
       @Valid @RequestBody LeaveCreateRequest request) {
-    var leave = service.create(employeeId, request);
+    LeaveCreatedDto leave = service.create(employeeId, request);
     return ResponseEntity.created(URI.create("/api/leave-requests/" + leave.id())).body(leave);
   }
 
-  @PostMapping(consumes = {MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE})
+  @PostMapping(consumes = { MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE })
   @Hidden
   public ResponseEntity<LeaveCreatedDto> createForm(
       @PathVariable @Positive(message = "Employee ID must be positive") Long employeeId,

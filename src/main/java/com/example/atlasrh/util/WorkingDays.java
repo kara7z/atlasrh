@@ -3,9 +3,11 @@ package com.example.atlasrh.util;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class WorkingDays {
-  private WorkingDays() {
-  }
 
   public static long between(LocalDate start, LocalDate end) {
     if (end.isBefore(start)) {

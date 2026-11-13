@@ -56,7 +56,7 @@ public class DepartmentController {
     return ResponseEntity.created(URI.create("/api/departments/" + department.id())).body(department);
   }
 
-  @PostMapping(consumes = {MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE})
+  @PostMapping(consumes = { MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE })
   @Hidden
   public ResponseEntity<DepartmentDto> createForm(@Valid @ModelAttribute DepartmentRequest request) {
     return create(request);
@@ -69,8 +69,8 @@ public class DepartmentController {
     return service.update(id, request);
   }
 
-  @PutMapping(value = "/{id}",
-      consumes = {MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE})
+  @PutMapping(value = "/{id}", consumes = { MediaType.MULTIPART_FORM_DATA_VALUE,
+      MediaType.APPLICATION_FORM_URLENCODED_VALUE })
   @Hidden
   public DepartmentDto updateForm(@PathVariable @Positive(message = "Department ID must be positive") Long id,
       @Valid @ModelAttribute DepartmentRequest request) {

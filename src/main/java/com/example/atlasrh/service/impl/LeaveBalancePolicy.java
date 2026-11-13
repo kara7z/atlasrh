@@ -43,7 +43,8 @@ public class LeaveBalancePolicy {
     long used = requests.findApprovedForYear(employeeId, type, yearStart, yearEnd).stream()
         .mapToLong(leave -> WorkingDays.between(
             leave.getStartDate().isAfter(yearStart) ? leave.getStartDate() : yearStart,
-            leave.getEndDate().isBefore(yearEnd) ? leave.getEndDate() : yearEnd)).sum();
+            leave.getEndDate().isBefore(yearEnd) ? leave.getEndDate() : yearEnd))
+        .sum();
     return new LeaveBalanceDto(type, allowance, used, allowance - used);
   }
 
