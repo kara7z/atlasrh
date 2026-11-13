@@ -2,7 +2,7 @@ spring:
   application:
     name: atlasrh
   datasource:
-    url: ${DB_URL:jdbc:mariadb://localhost:3306/atlasrh}
+    url: ${DB_URL:jdbc:mariadb://localhost:3307/atlasrh}
     username: ${DB_USERNAME:atlasrh}
     password: ${DB_PASSWORD:atlasrh_dev}
   liquibase:

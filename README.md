@@ -17,7 +17,7 @@ Start Docker, then run only MariaDB and launch the app locally:
 
 ```bash
 docker compose up -d --wait mariadb
-DB_URL=jdbc:mariadb://localhost:3307/atlasrh ./mvnw spring-boot:run
+./mvnw spring-boot:run
 ```
 
 Containers are managed manually with `docker compose`; the application does not
@@ -54,11 +54,11 @@ To run it against MariaDB manually:
 
 ```bash
 docker compose up -d --wait mariadb
-DB_URL=jdbc:mariadb://localhost:3307/atlasrh java -jar target/atlasrh-0.0.1-SNAPSHOT.jar
+java -jar target/atlasrh-0.0.1-SNAPSHOT.jar
 ```
 
-Start the database separately before running the JAR. The explicit URL is necessary because `compose.yaml` exposes
-port **3307**, while the fallback in `application.yaml` uses **3306**.
+Start the database separately before running the JAR. The default database URL uses
+port **3307**, matching `compose.yaml`. Set `DB_URL` to use a different database.
 
 ## Run development in Docker
 
