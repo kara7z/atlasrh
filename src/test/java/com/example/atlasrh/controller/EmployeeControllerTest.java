@@ -35,6 +35,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.example.atlasrh.dto.EmployeeDto;
 import com.example.atlasrh.dto.EmployeeRequest;
+import com.example.atlasrh.exception.ConflictException;
 import com.example.atlasrh.exception.ResourceNotFoundException;
 import com.example.atlasrh.service.EmployeeService;
 
@@ -201,8 +202,7 @@ class EmployeeControllerTest {
     }
 
     @Test
-    void createRejectsInvalidPayload() throws Exception {
-      mockMvc.perform(post(BASE_PATH)
+    void createRejectsInvalidPayload() throws Exception {      mockMvc.perform(post(BASE_PATH)
           .contentType(MediaType.APPLICATION_JSON)
           .content("""
               {
@@ -218,6 +218,20 @@ class EmployeeControllerTest {
           .andExpect(status().isBadRequest())
           .andExpect(jsonPath("$.detail").value("Request validation failed"))
           .andExpect(jsonPath("$.errors.length()").value(2));
+    }
+
+    @Test
+    void createReturnsConflictWhenEmployeeNumberOrEmailAlreadyExists() throws Exception {
+      when(service.create(any(EmployeeRequest.class)))
+          .thenThrow(new ConflictException("An employee with this employee number or email already exists"));
+
+      mockMvc.perform(post(BASE_PATH)
+          .contentType(MediaType.APPLICATION_JSON)
+          .content(EMPLOYEE_JSON))
+          .andExpect(status().isConflict())
+          .andExpect(jsonPath("$.status").value(409))
+          .andExpect(jsonPath("$.detail")
+              .value("An employee with this employee number or email already exists"));
     }
   }
 

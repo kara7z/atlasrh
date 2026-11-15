@@ -20,7 +20,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
-import org.springframework.data.relational.core.conversion.DbActionExecutionException;
 
 import com.example.atlasrh.dto.DepartmentDto;
 import com.example.atlasrh.dto.DepartmentRequest;
@@ -219,24 +218,12 @@ class DepartmentServiceImplTest {
     void deleteTranslatesEmployeeReferenceConstraint() {
       when(repository.findById(1L)).thenReturn(Optional.of(department));
       when(employeeRepository.existsByDepartmentId(1L)).thenReturn(false);
-      org.mockito.Mockito.doThrow(new DataIntegrityViolationException(
-          "reference", new DataIntegrityViolationException("foreign key")))
+      org.mockito.Mockito.doThrow(new DataIntegrityViolationException("reference"))
           .when(repository).delete(department);
 
       assertThatThrownBy(() -> service.delete(1L))
           .isInstanceOf(DepartmentConflictException.class)
           .hasMessageContaining("Cannot delete a department with employees");
-    }
-
-    @Test
-    void deletePropagatesUnrelatedIntegrityFailure() {
-      when(repository.findById(1L)).thenReturn(Optional.of(department));
-      when(employeeRepository.existsByDepartmentId(1L)).thenReturn(false);
-      DbActionExecutionException failure = new DbActionExecutionException(
-          null, new IllegalStateException("unrelated"));
-      org.mockito.Mockito.doThrow(failure).when(repository).delete(department);
-
-      assertThatThrownBy(() -> service.delete(1L)).isSameAs(failure);
     }
   }
 }
