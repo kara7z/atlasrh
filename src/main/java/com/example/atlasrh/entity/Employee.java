@@ -4,10 +4,13 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.Transient;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -16,27 +19,41 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+@Entity
+@Table(name = "employees")
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
 @Setter
 @Builder
-@Table("employees")
 public class Employee {
   @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
   @Setter(AccessLevel.NONE)
   private Long id;
+
+  @Column(name = "employee_number", nullable = false, unique = true)
   private String employeeNumber;
+
+  @Column(name = "first_name", nullable = false)
   private String firstName;
+
+  @Column(name = "last_name", nullable = false)
   private String lastName;
+
+  @Column(nullable = false, unique = true)
   private String email;
+
+  @Column(nullable = false)
   private String position;
+
+  @Column(name = "hire_date", nullable = false)
   private LocalDate hireDate;
 
-  @Column("department_id")
+  @Column(name = "department_id", nullable = false)
   private Long departmentId;
 
-  @Column("manager_id")
+  @Column(name = "manager_id")
   private Long managerId;
 
   @Transient

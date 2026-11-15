@@ -11,7 +11,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
-import org.springframework.data.relational.core.conversion.DbActionExecutionException;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.atlasrh.dto.EmployeeDto;
@@ -124,7 +123,7 @@ public class EmployeeServiceImpl implements EmployeeService {
   private EmployeeDto save(Employee employee) {
     try {
       return mapper.toDto(repository.save(employee));
-    } catch (DataIntegrityViolationException | DbActionExecutionException exception) {
+    } catch (DataIntegrityViolationException exception) {
       for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
         if (cause instanceof DuplicateKeyException) {
           throw duplicateEmployee();

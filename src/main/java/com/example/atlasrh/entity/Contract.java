@@ -12,28 +12,46 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.Transient;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 
+@Entity
+@Table(name = "contracts")
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
 @Setter
 @Builder
-@Table("contracts")
 public class Contract {
   @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
   @Setter(AccessLevel.NONE)
   private Long id;
+
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
   private ContractType type;
+
+  @Column(name = "start_date", nullable = false)
   private LocalDate startDate;
+
+  @Column(name = "end_date")
   private LocalDate endDate;
+
+  @Column(name = "gross_salary", nullable = false, precision = 19, scale = 2)
   private BigDecimal grossSalary;
+
+  @Column(nullable = false)
   private boolean ended;
 
-  @Column("employee_id")
+  @Column(name = "employee_id", nullable = false)
   private Long employeeId;
 
   @Transient

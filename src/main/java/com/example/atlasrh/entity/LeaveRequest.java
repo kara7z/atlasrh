@@ -12,33 +12,53 @@ import lombok.Setter;
 
 import java.time.LocalDate;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.Transient;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 
+@Entity
+@Table(name = "leave_requests")
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
 @Setter
 @Builder
-@Table("leave_requests")
 public class LeaveRequest {
   @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
   @Setter(AccessLevel.NONE)
   private Long id;
 
-  @Column("employee_id")
+  @Column(name = "employee_id", nullable = false)
   private Long employeeId;
 
   @Transient
   private Employee employee;
 
+  @Enumerated(EnumType.STRING)
+  @Column(name = "leave_type", nullable = false)
   private LeaveType leaveType;
+
+  @Column(name = "start_date", nullable = false)
   private LocalDate startDate;
+
+  @Column(name = "end_date", nullable = false)
   private LocalDate endDate;
+
+  @Column(nullable = false, columnDefinition = "TEXT")
   private String reason;
+
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
   private RequestStatus status;
+
+  @Column(columnDefinition = "TEXT")
   private String comment;
 
   public void setEmployeeId(Long employeeId) {

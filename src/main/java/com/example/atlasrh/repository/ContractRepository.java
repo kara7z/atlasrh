@@ -3,19 +3,22 @@ package com.example.atlasrh.repository;
 import java.time.LocalDate;
 import java.util.List;
 
-import org.springframework.data.jdbc.repository.query.Query;
-import org.springframework.data.repository.ListCrudRepository;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.example.atlasrh.entity.Contract;
 
-public interface ContractRepository extends ListCrudRepository<Contract, Long> {
+public interface ContractRepository extends JpaRepository<Contract, Long> {
   List<Contract> findByEmployeeIdOrderByStartDateDescIdDesc(Long employeeId);
 
   @Query("""
-      SELECT COUNT(*) > 0 FROM contracts
-      WHERE employee_id = :employeeId
-        AND (:endDate IS NULL OR start_date <= :endDate)
-        AND (end_date IS NULL OR end_date >= :startDate)
+      select count(c) > 0 from Contract c
+      where c.employeeId = :employeeId
+        and (:endDate is null or c.startDate <= :endDate)
+        and (c.endDate is null or c.endDate >= :startDate)
       """)
-  boolean existsOverlapping(Long employeeId, LocalDate startDate, LocalDate endDate);
+  boolean existsOverlapping(@Param("employeeId") Long employeeId,
+      @Param("startDate") LocalDate startDate,
+      @Param("endDate") LocalDate endDate);
 }

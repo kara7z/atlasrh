@@ -39,7 +39,8 @@ public class EmployeeBalanceServiceImpl implements EmployeeBalanceService {
     var employee = employees.findById(employeeId)
         .orElseThrow(() -> new ResourceNotFoundException("Employee not found: " + employeeId));
     Period elapsed = employee.getHireDate().isAfter(today)
-        ? Period.ZERO : Period.between(employee.getHireDate(), today);
+        ? Period.ZERO
+        : Period.between(employee.getHireDate(), today);
     var seniority = new SeniorityDto(elapsed.getYears(), elapsed.getMonths());
     var balances = Arrays.stream(LeaveType.values())
         .map(type -> policy.balance(employeeId, type, selectedYear)).toList();

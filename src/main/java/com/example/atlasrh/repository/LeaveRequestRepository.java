@@ -1,45 +1,61 @@
 package com.example.atlasrh.repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
-import java.time.LocalDate;
-
-import com.example.atlasrh.enums.LeaveType;
-import com.example.atlasrh.enums.RequestStatus;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jdbc.repository.query.Query;
-import org.springframework.data.repository.ListCrudRepository;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.example.atlasrh.entity.LeaveRequest;
+import com.example.atlasrh.enums.LeaveType;
+import com.example.atlasrh.enums.RequestStatus;
 
-public interface LeaveRequestRepository extends ListCrudRepository<LeaveRequest, Long> {
+import jakarta.persistence.LockModeType;
+
+public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long> {
   Page<LeaveRequest> findByEmployeeId(Long employeeId, Pageable pageable);
 
   Page<LeaveRequest> findByEmployeeIdAndStatus(Long employeeId, RequestStatus status, Pageable pageable);
 
   @Query("""
-      SELECT COUNT(*) > 0 FROM leave_requests
-      WHERE employee_id = :employeeId AND start_date <= :endDate AND end_date >= :startDate
+      select count(lr) > 0 from LeaveRequest lr
+      where lr.employeeId = :employeeId
+        and lr.startDate <= :endDate
+        and lr.endDate >= :startDate
       """)
-  boolean existsOverlapping(Long employeeId, LocalDate startDate, LocalDate endDate);
+  boolean existsOverlapping(@Param("employeeId") Long employeeId,
+      @Param("startDate") LocalDate startDate,
+      @Param("endDate") LocalDate endDate);
 
   @Query("""
-      SELECT * FROM leave_requests
-      WHERE employee_id = :employeeId AND leave_type = :type AND status = 'APPROVED'
-        AND start_date <= :yearEnd AND end_date >= :yearStart
+      select lr from LeaveRequest lr
+      where lr.employeeId = :employeeId
+        and lr.leaveType = :type
+        and lr.status = com.example.atlasrh.enums.RequestStatus.APPROVED
+        and lr.startDate <= :yearEnd
+        and lr.endDate >= :yearStart
       """)
-  List<LeaveRequest> findApprovedForYear(Long employeeId, LeaveType type, LocalDate yearStart, LocalDate yearEnd);
+  List<LeaveRequest> findApprovedForYear(@Param("employeeId") Long employeeId,
+      @Param("type") LeaveType type,
+      @Param("yearStart") LocalDate yearStart,
+      @Param("yearEnd") LocalDate yearEnd);
 
   @Query("""
-      SELECT lr.* FROM leave_requests lr
-      JOIN employees e ON e.id = lr.employee_id
-      WHERE e.manager_id = :managerId AND e.id <> :managerId AND lr.status = 'PENDING'
-      ORDER BY lr.start_date, lr.id
+      select lr from LeaveRequest lr, Employee e
+      where lr.employeeId = e.id
+        and e.managerId = :managerId
+        and e.id <> :managerId
+        and lr.status = com.example.atlasrh.enums.RequestStatus.PENDING
+      order by lr.startDate, lr.id
       """)
-  List<LeaveRequest> findPendingByManagerId(Long managerId);
+  List<LeaveRequest> findPendingByManagerId(@Param("managerId") Long managerId);
 
-  @Query("SELECT * FROM leave_requests WHERE id = :id FOR UPDATE")
-  Optional<LeaveRequest> lockById(Long id);
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("select lr from LeaveRequest lr where lr.id = :id")
+  Optional<LeaveRequest> lockById(@Param("id") Long id);
 }

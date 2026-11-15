@@ -6,7 +6,6 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
-import org.springframework.data.relational.core.conversion.DbActionExecutionException;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.atlasrh.dto.DepartmentDto;
@@ -76,18 +75,15 @@ public class DepartmentServiceImpl implements DepartmentService {
     }
     try {
       repository.delete(department);
-    } catch (DataIntegrityViolationException | DbActionExecutionException exception) {
-      if (hasCause(exception, DataIntegrityViolationException.class)) {
-        throw occupiedDepartment();
-      }
-      throw exception;
+    } catch (DataIntegrityViolationException exception) {
+      throw occupiedDepartment();
     }
   }
 
   private DepartmentDto save(Department department) {
     try {
       return mapper.toDto(repository.save(department));
-    } catch (DataIntegrityViolationException | DbActionExecutionException exception) {
+    } catch (DataIntegrityViolationException exception) {
       if (hasCause(exception, DuplicateKeyException.class)) {
         throw duplicateName();
       }
